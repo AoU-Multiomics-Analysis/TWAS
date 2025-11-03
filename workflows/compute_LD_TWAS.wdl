@@ -19,7 +19,7 @@ task ComputeLD {
 
 
     runtime {
-        docker: "ghcr.io/aou-multiomics-analysis/TWAS:main"
+        docker: "ghcr.io/aou-multiomics-analysis/twas:main"
         cpu: "4"
         memory: "32 GB"
         disks: "local-disk 100 HDD"
