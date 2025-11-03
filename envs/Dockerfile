@@ -6,7 +6,7 @@ ENV MAMBA_DOCKERFILE_ACTIVATE=1
 ENV PATH=/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 
-RUN micromamba install -y -n base -c conda-forge -bioconda \
+RUN micromamba install -y -n base -c conda-forge -c bioconda \
     conda-forge::r-tidyverse \
     conda-forge::datatable \
     conda-forge::r-janitor \
@@ -18,5 +18,5 @@ RUN micromamba install -y -n base -c conda-forge -bioconda \
 ENV R_ENV=r-env 
 
 RUN Rscript -e 'remotes::install_github("gabraham/plink2R@main")'
-RUN Rscript -e 'install.packages("Rfast)'
+#RUN Rscript -e 'install.packages("Rfast)'
 
