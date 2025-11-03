@@ -16,6 +16,6 @@ RUN micromamba install -y -n base -c conda-forge -c bioconda \
 
 ENV R_ENV=r-env 
 
-RUN Rscript -e 'remotes::install_github("gabraham/plink2R@main")'
+#RUN Rscript -e 'remotes::install_github("gabraham/plink2R@main")'
 #RUN Rscript -e 'install.packages("Rfast)'
 
