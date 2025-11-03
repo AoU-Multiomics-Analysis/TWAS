@@ -37,6 +37,9 @@ workflow PreprocessLD {
             DoseMatrix = DoseMatrix,
             PhenotypeID = PhenotypeID
     }
+    output {
+        File MatrixLD = ComputeLD.MatrixLD
 
+    }
 
 }
