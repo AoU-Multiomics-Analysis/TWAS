@@ -19,7 +19,7 @@ task ComputeLD {
 
 
     runtime {
-        docker: "quay.io/biocontainers/bcftools:1.22--h3a4d415_0"
+        docker: "ghcr.io/aou-multiomics-analysis/TWAS:main"
         cpu: "4"
         memory: "32 GB"
         disks: "local-disk 100 HDD"
