@@ -11,10 +11,11 @@ RUN micromamba install -y -n base -c conda-forge -c bioconda \
     conda-forge::datatable \
     bioconda::r-bedr \
     conda-forge::r-arrow \
-    conda-forge::r-optparse
+    conda-forge::r-optparse \
+    conda-forge::r-rfast
 
 ENV R_ENV=r-env 
 
-#RUN Rscript -e 'remotes::install_github("gabraham/plink2R@main")'
-RUN Rscript -e 'install.packages("Rfast)'
+RUN Rscript -e 'remotes::install_github("gabraham/plink2R@main")'
+#RUN Rscript -e 'install.packages("Rfast)'
 
