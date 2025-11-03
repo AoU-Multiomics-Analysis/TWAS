@@ -8,7 +8,7 @@ task ComputeLD {
         }
 
     command <<<
-    Rscript TWAS_compute_LD.R \
+    Rscript /tmp/TWAS_compute_LD.R \
         --PhenotypeID ~{PhenotypeID} \
         --DoseMatrix ~{DoseMatrix}
     >>>
