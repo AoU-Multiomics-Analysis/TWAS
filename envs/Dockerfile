@@ -11,7 +11,7 @@ RUN micromamba install -y -n base -c conda-forge -c bioconda \
     conda-forge::datatable \
     bioconda::r-bedr \
     conda-forge::r-arrow \
-    bioconda::r-optparse
+    conda-forge::r-optparse
 
 ENV R_ENV=r-env 
 
