@@ -1,4 +1,5 @@
 version: 1.2
 workflows:
   - subclass: WDL 
-    primaryDescriptorPath: <Path> 
+    primaryDescriptorPath: /workflows/compute_LD_TWAS.wdl
+    name: "TWAS_LD"
