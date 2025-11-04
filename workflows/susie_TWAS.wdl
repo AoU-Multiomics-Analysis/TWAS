@@ -8,6 +8,7 @@ task SusieTWAS {
         File SumStatsIndex 
         File FineMapping
         String PhenotypeID
+        Int NumPrempt
         }
 
     command <<<
@@ -25,6 +26,7 @@ task SusieTWAS {
 
     runtime {
         docker: "ghcr.io/aou-multiomics-analysis/twas:main"
+        preemptible: "~{NumPrempt}"
         cpu: "4"
         memory: "32 GB"
         disks: "local-disk 100 HDD"
@@ -39,6 +41,8 @@ workflow TWAS {
         File SumStatsIndex
         File FineMapping
         String PhenotypeID
+        Int NumPrempt
+
     }
     call SusieTWAS {
         input:
@@ -46,7 +50,8 @@ workflow TWAS {
             PhenotypeID = PhenotypeID,
             FineMapping = FineMapping,
             SumStats = SumStats,
-            SumStatsIndex = SumStatsIndex
+            SumStatsIndex = SumStatsIndex,
+            NumPrempt = NumPrempt
     }
     output {
         File ResTWAS = SusieTWAS.OutTWAS 
