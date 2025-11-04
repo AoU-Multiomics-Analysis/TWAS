@@ -3,7 +3,6 @@ workflows:
   - subclass: WDL 
     primaryDescriptorPath: /workflows/compute_LD_TWAS.wdl
     name: "TWAS_LD"
-workflows:
   - subclass: WDL 
     primaryDescriptorPath: /workflows/susie_TWAS.wdl
     name: "SusieTWAS"
