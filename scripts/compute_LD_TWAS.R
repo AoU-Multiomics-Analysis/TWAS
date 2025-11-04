@@ -56,4 +56,4 @@ genotype_dat <- fread(DosePath) %>%
     t() %>% 
     scale()
 LD_matrix <- compute_LD(genotype_dat)
-saveRDS(LD_matrix,output = OutFileName)
+saveRDS(LD_matrix,file = OutFileName)
