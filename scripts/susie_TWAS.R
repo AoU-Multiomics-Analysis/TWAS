@@ -57,7 +57,7 @@ calculate_TWAS_Z <- function(variant_df,LD_matrix) {
     output
 }
 
-TWAS <- function(SusieData,GWAS_path,LD,PhenotypeID) {
+TWAS <- function(GWAS_path,SusieData,LD,PhenotypeID) {
 GWAS <- extract_gwas_data(
                     SusieData,
                     GWAS_path 
@@ -107,7 +107,7 @@ PhenotypeID <- opt$PhenotypeID
 
 # convert comma seperated list of summary stat files into a dataframe 
 # to loop over and calculate TWAS Z scores 
-#SummaryStatsDf <- data.frame(SummaryStats=strsplit(SummaryStats,','))
+SummaryStatsList <- strsplit(SummaryStats,',')
 
 ##################### LOAD DATA ##########################
 # loading finemapping data 
@@ -119,8 +119,13 @@ LD <- readRDS(MatrixLD)
 
 ############# COMPUTE TWAS Z SCORE ########################
 # computes TWAS Z statistic 
-ResTWAS <-  susie_dat %>%
-            TWAS(SummaryStats,LD,PhenotypeID)
+#ResTWAS <-  susie_dat %>%
+            #TWAS(SummaryStats,LD,PhenotypeID)
+
+# loop over summary stats and perform TWAS 
+# for each phenotype 
+ResTWAS <-  SummaryStatsList %>%
+                map_dfr(~TWAS(.x, SusieData = susie_dat,LD = LD,PhenotypeID = PhenotypeID))
 
 # write to output
 ResTWAS %>% write_tsv(OutFileName)
