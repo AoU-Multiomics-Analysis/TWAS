@@ -80,7 +80,7 @@ PhenotypeID <- opt$PhenotypeID
 
 ##################### LOAD DATA ##########################
 # loading finemapping data 
-susie_dat <- load_susie_data(basename(finemapping_data)) %>% 
+susie_dat <- load_susie_data(basename(FineMappingRes)) %>% 
                 mutate(variant = str_replace(variant,'chrchr','chr'))
 
 # take variants from finemapping results and query GWAS file
