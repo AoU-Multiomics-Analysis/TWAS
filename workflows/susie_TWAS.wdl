@@ -35,8 +35,8 @@ task SusieTWAS {
 workflow TWAS {
     input {
         File LDMatrix 
-        File Sumstats
-        File SumsatsIndex
+        File SumStats
+        File SumStatsIndex
         File FineMapping
         String PhenotypeID
     }
@@ -44,8 +44,9 @@ workflow TWAS {
         input:
             LDMatrix = LDMatrix,
             PhenotypeID = PhenotypeID,
+            FineMapping = FineMapping,
             SumStats = SumStats,
-            SumStatsIndex = SumStatsIndex, 
+            SumStatsIndex = SumStatsIndex
     }
     output {
         File ResTWAS = SusieTWAS.OutTWAS 
