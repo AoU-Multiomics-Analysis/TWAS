@@ -40,7 +40,7 @@ workflow TWAS {
         File FineMapping
         String PhenotypeID
     }
-    call ComputeLD {
+    call SusieTWAS {
         input:
             LDMatrix = LDMatrix,
             PhenotypeID = PhenotypeID,
