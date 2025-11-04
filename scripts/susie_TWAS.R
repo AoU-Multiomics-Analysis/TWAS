@@ -95,7 +95,8 @@ GWAS <- extract_gwas_data(
 # for each variant that are present in gwas data. 
 # Sometimes variants have multiple measurements in a gwas 
 # but im not qutie sure why
-FilteredGWAS <- GWAS %>% 
+FilteredGWAS <- GWAS %>%
+    filter(allele_match == TRUE) %>% 
     mutate(z = beta/standard_error) %>% 
     group_by(variant) %>% 
     filter(dplyr::n() == 1) %>% 
