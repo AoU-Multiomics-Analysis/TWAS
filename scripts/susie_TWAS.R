@@ -115,7 +115,7 @@ PhenotypeID <- opt$PhenotypeID
 
 # convert comma seperated list of summary stat files into a dataframe 
 # to loop over and calculate TWAS Z scores 
-SummaryStatsList <- strsplit(SummaryStats,',')
+SummaryStatsList <- strsplit(SummaryStats,',')[[1]]
 
 ##################### LOAD DATA ##########################
 # loading finemapping data 
