@@ -1,7 +1,11 @@
-library(tidyverse)
-library(data.table)
-library(arrow)
-library(bedr)
+suppressPackageStartupMessages({
+    library(tidyverse)
+    library(data.table)
+    library(arrow)
+    library(bedr)
+    })
+
+######### FUNCTIONS ######################
 
 load_susie_data <- function(path) {
 susie_data <- arrow::read_parquet(path) %>% 
