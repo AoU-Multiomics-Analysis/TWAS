@@ -13,6 +13,7 @@ RUN micromamba install -y -n base -c conda-forge -c bioconda \
     conda-forge::r-arrow \
     conda-forge::r-optparse \
     bioconda::tabix \
+    conda-forge::google-cloud-sdk \
     conda-forge::r-rfast=2.1.5.2
 
 ENV R_ENV=r-env 
