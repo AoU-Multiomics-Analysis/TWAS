@@ -15,12 +15,11 @@ opt <- optparse::parse_args(optparse::OptionParser(option_list=option_list))
 merged_tsv <- paste0(opt$OutputPrefix,'_TWAS.tsv')
 
 
-list.files('.')
-list.files('localized/')
 
 ############### PARSE DATA ################
-filepath_df <- fread(opt$FilePaths,header = FALSE) %>% dplyr::rename('path' = 1) %>% pull(path)
-number_files <- filepath_df %>% length() 
+#filepath_df <- fread(opt$FilePaths,header = FALSE) %>% dplyr::rename('path' = 1) %>% pull(path)
+TWAS_files <- list.files('.',pattern = "\\.TWAS.txt$")
+number_files <- TWAS_files %>% length() 
 message(paste0('Number of files found: ',number_files))
 
 TWAS_df <- dplyr::tibble(
@@ -33,7 +32,7 @@ TWAS_df <- dplyr::tibble(
 
 
 counter <- 0
-for (x in filepath_df){
+for (x in TWAS_files){
     current_dat <- fread(x)
     TWAS_df <- bind_rows(TWAS_df,current_dat)
     counter <- counter + 1 
