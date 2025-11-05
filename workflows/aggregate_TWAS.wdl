@@ -15,7 +15,8 @@ task AggregateTWAS {
 
     mkdir -p localized
     gsutil -m cp -I localized/ < file_paths.txt 
-
+    
+    ls .
     # Write the new local file paths into filelist.txt
     ls -1 "localized/*" > filelist.txt
     Rscript /tmp/aggregate_TWAS.R --FilePaths filelist.txt  --OutputPrefix ~{OutputPrefix}

@@ -14,6 +14,10 @@ option_list <- list(
 opt <- optparse::parse_args(optparse::OptionParser(option_list=option_list))
 merged_tsv <- paste0(opt$OutputPrefix,'_TWAS.tsv')
 
+
+list.files('.')
+list.files('localized/')
+
 ############### PARSE DATA ################
 filepath_df <- fread(opt$FilePaths,header = FALSE) %>% dplyr::rename('path' = 1) %>% pull(path)
 number_files <- filepath_df %>% length() 
