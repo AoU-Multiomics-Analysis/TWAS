@@ -58,6 +58,8 @@ calculate_TWAS_Z <- function(variant_df,LD_matrix) {
 }
 
 TWAS <- function(GWAS_path,SusieData,LD,PhenotypeID) {
+message('Extracting GWAS summary statistics for:')
+message(GWAS_path)
 GWAS <- extract_gwas_data(
                     SusieData,
                     GWAS_path 
@@ -74,11 +76,13 @@ FilteredGWAS <- GWAS %>%
     filter(dplyr::n() == 1) %>% 
     ungroup()
 
+message('Computing TWAS Z')
 ResTWAS <- FilteredGWAS %>% 
             calculate_TWAS_Z(LD) %>% 
             mutate(gene = PhenotypeID,
                    GWAS = tools::file_path_sans_ext(basename(SummaryStats))
                     )
+
 ResTWAS
 }
 
@@ -111,10 +115,12 @@ SummaryStatsList <- strsplit(SummaryStats,',')
 
 ##################### LOAD DATA ##########################
 # loading finemapping data 
+message('Loading fine mapping')
 susie_dat <- load_susie_data(FineMappingRes) %>% 
                 mutate(variant = str_replace(variant,'chrchr','chr'))
 
 # Loads LD matrix
+message('Loading LD matrix')
 LD <- readRDS(MatrixLD)
 
 ############# COMPUTE TWAS Z SCORE ########################
