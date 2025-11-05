@@ -33,7 +33,7 @@ TWAS_df <- dplyr::tibble(
 
 counter <- 0
 for (x in TWAS_files){
-    current_dat <- fread(x)
+    current_dat <- fread(paste0('localized/',x))
     TWAS_df <- bind_rows(TWAS_df,current_dat)
     counter <- counter + 1 
     print(counter)
