@@ -4,8 +4,8 @@ version 1.0
 task SusieTWAS {
     input {
         File LDMatrix 
-        File SumStats 
-        File SumStatsIndex 
+        Array[File] SumStats 
+        Array[File] SumStatsIndex 
         File FineMapping
         String PhenotypeID
         Int NumPrempt
@@ -16,7 +16,7 @@ task SusieTWAS {
         --PhenotypeID ~{PhenotypeID} \
         --LDMatrix ~{LDMatrix} \
         --SusieRes ~{FineMapping} \
-        --SummaryStats ~{SumStats}
+        --SummaryStats ~{sep="," SumStats}
     >>>
 
     output {
@@ -37,8 +37,8 @@ task SusieTWAS {
 workflow TWAS {
     input {
         File LDMatrix 
-        File SumStats
-        File SumStatsIndex
+        Array[File] SumStats
+        Array[File] SumStatsIndex
         File FineMapping
         String PhenotypeID
         Int NumPrempt
