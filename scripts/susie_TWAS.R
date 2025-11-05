@@ -84,7 +84,7 @@ message('Computing TWAS Z')
 ResTWAS <- FilteredGWAS %>% 
             calculate_TWAS_Z(LD) %>% 
             mutate(gene = PhenotypeID,
-                   GWAS = tools::file_path_sans_ext(basename(SummaryStats))
+                   GWAS = tools::file_path_sans_ext(basename(GWAS_path))
                     )
 
 ResTWAS
