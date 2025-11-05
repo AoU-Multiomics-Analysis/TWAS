@@ -53,7 +53,7 @@ workflow AggregateTWASWorkflow {
     }
     output {
         File AggregatedTWAS = AggregateTWAS.mergedTWASRes
-        File FileList = AggregatedTWAS.filelist
+        File FileList = AggregateTWAS.filelist
     }
 }
 
