@@ -39,4 +39,4 @@ for (x in TWAS_files){
     print(counter)
 }
 
-TWAS_df %>% fwrite(merged_tsv)
+TWAS_df %>% fwrite(merged_tsv,sep = '\t')
