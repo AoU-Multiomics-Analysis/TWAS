@@ -6,6 +6,7 @@ task ComputeLD {
         File DoseMatrix
         String PhenotypeID
         Int NumPrempt
+        Int Memory
         }
 
     command <<<
@@ -23,7 +24,7 @@ task ComputeLD {
         docker: "ghcr.io/aou-multiomics-analysis/twas:main"
         cpu: "4"
         preemptible: "${NumPrempt}"
-        memory: "32 GB"
+        memory: "${Memory} GB"
         disks: "local-disk 100 HDD"
     }
 }
@@ -34,12 +35,14 @@ workflow PreprocessLD {
         File DoseMatrix
         String PhenotypeID
         Int NumPrempt
+        Int Memory
     }
     call ComputeLD {
         input:
             DoseMatrix = DoseMatrix,
             PhenotypeID = PhenotypeID,
-            NumPrempt = NumPrempt
+            NumPrempt = NumPrempt,
+            Memory = Memory
     }
     output {
         File MatrixLD = ComputeLD.MatrixLD
