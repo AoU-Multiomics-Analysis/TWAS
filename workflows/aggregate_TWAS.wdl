@@ -18,7 +18,7 @@ task AggregateTWAS {
 
     # Write the new local file paths into filelist.txt
     ls -1 "$(pwd)/localized/*" > filelist.txt
-    Rscript /tmp/aggregate_TWAS.R --FilePaths file_paths.txt  --OutputPrefix ~{OutputPrefix}
+    Rscript /tmp/aggregate_TWAS.R --FilePaths filelist.txt  --OutputPrefix ~{OutputPrefix}
     >>>
 
     runtime {
