@@ -17,8 +17,8 @@ susie_data
 
 
 extract_interval <- function(finemapping_data) {
-    start <- min(finemapping_data$position)
-    end <- max(finemapping_data$position)
+    start <- min(as.numeric(finemapping_data$position))
+    end <- max(as.numeric(finemapping_data$position))
     chromosome <- unique(finemapping_data$chromosome)[1]
     interval <- paste0(chromosome,':',start,'-',end)
     interval
