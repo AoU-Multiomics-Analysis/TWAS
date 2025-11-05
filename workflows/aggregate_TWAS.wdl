@@ -17,7 +17,7 @@ task AggregateTWAS {
     gsutil -m cp -I localized/ < file_paths.txt 
 
     # Write the new local file paths into filelist.txt
-    ls -1 "$(pwd)/localized/*" > filelist.txt
+    ls -1 "localized/*" > filelist.txt
     Rscript /tmp/aggregate_TWAS.R --FilePaths filelist.txt  --OutputPrefix ~{OutputPrefix}
     >>>
 
@@ -31,7 +31,8 @@ task AggregateTWAS {
 
 
     output {
-        File mergedTWASRes = "~{OutputPrefix}_TWAS.tsv" 
+        File mergedTWASRes = "~{OutputPrefix}_TWAS.tsv"
+        File filelist = "filelist.txt"
     } 
 }
 
@@ -52,6 +53,7 @@ workflow AggregateTWASWorkflow {
     }
     output {
         File AggregatedTWAS = AggregateTWAS.mergedTWASRes
+        File FileList = AggregatedTWAS.filelist
     }
 }
 
