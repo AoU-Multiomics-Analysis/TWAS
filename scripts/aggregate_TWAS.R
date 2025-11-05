@@ -18,7 +18,7 @@ merged_tsv <- paste0(opt$OutputPrefix,'_TWAS.tsv')
 
 ############### PARSE DATA ################
 #filepath_df <- fread(opt$FilePaths,header = FALSE) %>% dplyr::rename('path' = 1) %>% pull(path)
-TWAS_files <- list.files('.',pattern = "\\.TWAS.txt$")
+TWAS_files <- list.files('localized/',pattern = "\\.TWAS.txt$")
 number_files <- TWAS_files %>% length() 
 message(paste0('Number of files found: ',number_files))
 
