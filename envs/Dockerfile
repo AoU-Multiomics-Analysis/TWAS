@@ -6,7 +6,7 @@ ENV MAMBA_DOCKERFILE_ACTIVATE=1
 ENV PATH=/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 
-RUN micromamba install -y -n base -c conda-forge -c bioconda \
+RUN micromamba install -y -n base -c conda-forge -c bioconda -c dnachun \
     conda-forge::r-tidyverse \
     conda-forge::datatable \
     conda-forge::r-bedr \
@@ -14,7 +14,8 @@ RUN micromamba install -y -n base -c conda-forge -c bioconda \
     conda-forge::r-optparse \
     bioconda::tabix \
     conda-forge::google-cloud-sdk \
-    conda-forge::r-rfast=2.1.5.2
+    conda-forge::r-rfast=2.1.5.2 \
+    dnachun::r-pecotmr
 
 ENV R_ENV=r-env 
 COPY scripts/*  . 
