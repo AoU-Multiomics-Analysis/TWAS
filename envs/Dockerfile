@@ -19,6 +19,7 @@ RUN micromamba install -y -n base -c conda-forge -c bioconda -c dnachun \
     conda-forge::r-r.utils \
     bioconda::bioconductor-genomicranges=1.58.0 \
     bioconda::bioconductor-rsamtools \
+    conda-forge::r-remotes \
     bioconda::bioconductor-summarizedexperiment \
     conda-forge::r-rfast=2.1.5.2
 
