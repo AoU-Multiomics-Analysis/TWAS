@@ -15,7 +15,14 @@ RUN micromamba install -y -n base -c conda-forge -c bioconda -c dnachun \
     bioconda::tabix \
     conda-forge::google-cloud-sdk \
     conda-forge::r-rfast=2.1.5.2 \
-    dnachun::r-pecotmr
+    dnachun::r-pecotmr \
+    conda-forge::r-r.utils \
+    bioconda::bioconductor-genomicranges=1.58.0 \
+    bioconda::bioconductor-rsamtools \
+    bioconda::bioconductor-summarizedexperiment \
+    conda-forge::r-rfast=2.1.5.2
+
+RUN R -e "remotes::install_github('kauralasoo/eQTLUtils')"
 
 ENV R_ENV=r-env 
 COPY scripts/*  . 
