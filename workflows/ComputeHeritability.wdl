@@ -20,7 +20,7 @@ task ComputeHeritabilityPlink {
         --BedFile ~{ExpressionBed} \
         --PhenotypeID ~{PhenotypeID}
     
-    IFS=$'\t' read CHR START END < <(awk 'NR==2 {print $1, $2, $3}' your_file.txt)   
+    IFS=$'\t' read CHR START END < <(awk 'NR==2 {print $1, $2, $3}' gene_region.tsv)   
 
     # subset pfiles to cis window for each gene  
     plink2 \
