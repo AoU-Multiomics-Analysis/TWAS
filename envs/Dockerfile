@@ -21,7 +21,9 @@ RUN micromamba install -y -n base -c conda-forge -c bioconda -c dnachun \
     bioconda::bioconductor-rsamtools \
     conda-forge::r-remotes \
     bioconda::bioconductor-summarizedexperiment \
-    conda-forge::r-rfast=2.1.5.2
+    conda-forge::r-rfast=2.1.5.2 \
+    bioconda::plink2 \
+    bioconda::gcta
 
 RUN R -e "remotes::install_github('kauralasoo/eQTLUtils')"
 
