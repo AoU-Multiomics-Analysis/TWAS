@@ -10,6 +10,8 @@ task ComputeHeritabilityPlink {
         File ExpressionBed 
         File Covars 
         File PhenotypeID
+        Int Memory
+        Int NumPrempt
     }
 
     command <<<
@@ -49,11 +51,15 @@ task ComputeHeritabilityPlink {
     >>>
     
     output {
-
+        File H2Estimate = "~{PhenotypeID}.hsq"
     }
     
     runtime {
-
+        docker: "ghcr.io/aou-multiomics-analysis/twas:main"
+        cpu: "4"
+        preemptible: "${NumPrempt}"
+        memory: "${Memory} GB"
+        disks: "local-disk 100 HDD"
     }
 }
 
@@ -66,6 +72,8 @@ workflow EstimateHeritability {
         File ExpressionBed 
         File Covars 
         File PhenotypeID
+        Int Memory 
+        Int NumPrempt
     }
     
     call ComputeHeritabilityPlink {
@@ -75,11 +83,13 @@ workflow EstimateHeritability {
             psam = psam,
             ExpressionBed = ExpressionBed,
             Covars = Covars,
-            PhenotypeID = PhenotypeID
+            PhenotypeID = PhenotypeID,
+            Memory = Memory,
+            NumPrempt = NumPrempt
     } 
 
     output {
-
+        File HeritabilityEstimate = ComputeHeritabilityPlink.H2Estimate 
     }
 
 }
