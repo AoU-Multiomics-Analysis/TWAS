@@ -9,3 +9,6 @@ workflows:
   - subclass: WDL 
     primaryDescriptorPath: /workflows/aggregate_TWAS.wdl
     name: "AggregateTWAS"
+  - subclass: WDL 
+    primaryDescriptorPath: /workflows/ComputeHeritability.wdl
+    name: "ComputeHeritability"
