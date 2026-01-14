@@ -23,11 +23,11 @@ GeneMeta <- SubsetBed %>% select(1,2,3)
 
 
 PhenoDf <- SubsetBed %>% 
-            dplyr::select(-1,-2,-3) %>%
-            dplyr::pivot_longer(!gene_id) %>% 
+            select(-1,-2,-3) %>%
+            pivot_longer(!gene_id) %>% 
             dplyr::select(-1) %>% 
-            dplyr::mutate(FID =0,IID = name) %>% 
-            dplyr::select(FID,IID,value)
+            mutate(FID =0,IID = name) %>% 
+            select(FID,IID,value)
 
 GeneMeta %>% write_tsv('gene_region.tsv')
 PhenoDf %>% write_tsv('pheno.txt')
