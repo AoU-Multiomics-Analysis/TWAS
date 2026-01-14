@@ -9,7 +9,7 @@ task ComputeHeritabilityPlink {
         File psam
         File ExpressionBed 
         File Covars 
-        File PhenotypeID
+        String PhenotypeID
         Int Memory
         Int NumPrempt
     }
@@ -71,7 +71,7 @@ workflow EstimateHeritability {
         File psam
         File ExpressionBed 
         File Covars 
-        File PhenotypeID
+        String PhenotypeID
         Int Memory 
         Int NumPrempt
     }
