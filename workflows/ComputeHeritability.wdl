@@ -29,7 +29,6 @@ task ComputeHeritabilityPlink {
         --chr $CHR  \
         --from-bp $START \
         --to-bp $END \
-        --pheno pheno.txt \ 
         --make-bed \
         --out ~{PhenotypeID}
     
