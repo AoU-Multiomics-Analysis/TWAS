@@ -19,7 +19,10 @@ PhenotypeID <- opt$PhenotypeID
 ############ EXTRACT GENE VALUE ##########
 SubsetBed <- fread(BedFilePath) %>% 
             dplyr::filter(gene_id == PhenotypeID)
-GeneMeta <- SubsetBed %>% select(1,2,3)
+GeneMeta <- SubsetBed %>%
+                dplyr::rename('chrom' = 1) %>% 
+                mutate(chrom = str_remove(chrom,'chr')) %>% 
+                select(1,2,3)
 
 
 PhenoDf <- SubsetBed %>% 
