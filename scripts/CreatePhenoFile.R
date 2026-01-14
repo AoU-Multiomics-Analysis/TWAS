@@ -20,8 +20,10 @@ PhenotypeID <- opt$PhenotypeID
 SubsetBed <- fread(BedFilePath) %>% 
             dplyr::filter(gene_id == PhenotypeID)
 GeneMeta <- SubsetBed %>%
-                dplyr::rename('chrom' = 1) %>% 
-                mutate(chrom = str_remove(chrom,'chr')) %>% 
+                dplyr::rename('chrom' = 1,start = 2,end = 3) %>% 
+                mutate(chrom = str_remove(chrom,'chr'),
+                       start = start - 1000000, end = end + 1000000) %>%
+                mutate(start = case_when(start < 1 ~ 1,TRUE ~ start )) %>% 
                 select(1,2,3)
 
 
