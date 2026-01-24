@@ -42,7 +42,7 @@ task ComputeHeritabilityPlink {
     gcta64 \
         --grm ~{PhenotypeID} \
         --pheno pheno.txt \
-        --reml \
+        --reml-no-constrain \
         --qcovar ~{Covars} \
         --out ~{PhenotypeID}
 
