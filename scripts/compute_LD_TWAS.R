@@ -57,7 +57,7 @@ OutFileName <- paste0(opt$PhenotypeID,'.LD.rds')
 VariantList <- fread(VariantListPath) %>%
         filter(phenotype == GeneID ) %>%  
         select(variant) %>% 
-        mutate(variant = str_replace('chrchr','chr')) %>% 
+        mutate(variant = str_replace(variant,'chrchr','chr')) %>% 
         pull(variant)
 
 
