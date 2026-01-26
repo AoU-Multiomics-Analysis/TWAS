@@ -49,11 +49,13 @@ option_list <- list(
 opt <- optparse::parse_args(optparse::OptionParser(option_list=option_list))
 DosePath <- opt$DoseMatrix
 VariantListPath <- opt$VariantList
+GeneID <- opt$PhenotypeID
 OutFileName <- paste0(opt$PhenotypeID,'.LD.rds')
 
 
 ###### LOAD SUSIE DATA #########
-VariantList <- fread(VariantListPath) %>% 
+VariantList <- fread(VariantListPath) %>%
+        filter(phenotype == GeneID ) %>%  
         select(variant) %>% 
         mutate(variant = str_replace('chrchr','chr')) %>% 
         pull(variant)
