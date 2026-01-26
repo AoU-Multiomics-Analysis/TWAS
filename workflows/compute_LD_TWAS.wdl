@@ -4,6 +4,7 @@ version 1.0
 task ComputeLD {
     input {
         File DoseMatrix
+        File VariantList
         String PhenotypeID
         Int NumPrempt
         Int Memory
@@ -12,7 +13,8 @@ task ComputeLD {
     command <<<
     Rscript /tmp/compute_LD_TWAS.R \
         --PhenotypeID ~{PhenotypeID} \
-        --DoseMatrix ~{DoseMatrix}
+        --DoseMatrix ~{DoseMatrix} \
+        --VariantList ~{VariantList}
     >>>
 
     output {
@@ -33,6 +35,7 @@ task ComputeLD {
 workflow PreprocessLD {
     input {
         File DoseMatrix
+        File VariantList
         String PhenotypeID
         Int NumPrempt
         Int Memory
@@ -40,6 +43,7 @@ workflow PreprocessLD {
     call ComputeLD {
         input:
             DoseMatrix = DoseMatrix,
+            VariantList = VariantList,
             PhenotypeID = PhenotypeID,
             NumPrempt = NumPrempt,
             Memory = Memory
