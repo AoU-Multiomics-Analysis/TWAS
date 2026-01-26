@@ -40,17 +40,30 @@ option_list <- list(
   optparse::make_option(c("--DoseMatrix"), type="character", default=NULL,
                         help="Path to dose matrix", metavar = "type"),
   optparse::make_option(c("--PhenotypeID"), type="character", default=NULL,
-                        help="Name of gene to compute LD on  ", metavar = "type")
+                        help="Name of gene to compute LD on  ", metavar = "type"),
+  optparse::make_option(c("--VariantList"), type="character", default=NULL,
+                        help=" ", metavar = "type")
+
     )
 
 opt <- optparse::parse_args(optparse::OptionParser(option_list=option_list))
 DosePath <- opt$DoseMatrix
+VariantListPath <- opt$VariantList
 OutFileName <- paste0(opt$PhenotypeID,'.LD.rds')
+
+
+###### LOAD SUSIE DATA #########
+VariantList <- fread(VariantListPath) %>% 
+        select(variant) %>% 
+        mutate(variant = str_replace('chrchr','chr')) %>% 
+        pull(variant)
+
 
 ########## BEGIN LD CALCULATION ########
 
 genotype_dat <- fread(DosePath) %>% 
-    mutate(variant = paste0(CHROM,'_',POS,'_',REF,'_',ALT)) %>% 
+    mutate(variant = paste0(CHROM,'_',POS,'_',REF,'_',ALT)) %>%
+    filter(variant %in% VariantList) %>%
     select(-CHROM,-POS,-REF,-ALT) %>% 
     column_to_rownames('variant') %>% 
     t() %>% 
