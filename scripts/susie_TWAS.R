@@ -128,7 +128,7 @@ option_list <- list(
     optparse::make_option(c("--SummaryStats"), type="character", default=NULL,
                         help="path to indexed summary stats", metavar = "type"),
     optparse::make_option(c("--SusieRes"), type="character", default=NULL,
-                        help="Path to finemapping data for a gene", metavar = "type")
+                        help="Path to finemapping data for a gene", metavar = "type"),
     optparse::make_option(c("--OutputPrefix"), type="character", default=NULL,
                         help="Path to finemapping data for a gene", metavar = "type")
 
