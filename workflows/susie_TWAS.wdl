@@ -9,6 +9,7 @@ task SusieTWAS {
         String NameGWAS
         File FineMapping
         Int NumPrempt
+        Int Memory
         }
 
     command <<<
@@ -20,7 +21,7 @@ task SusieTWAS {
     >>>
 
     output {
-        File OutTWAS = "~{SumStats}.TWAS.txt" 
+        File OutTWAS = "~{NameGWAS}.TWAS.txt" 
         }
 
 
@@ -28,7 +29,7 @@ task SusieTWAS {
         docker: "ghcr.io/aou-multiomics-analysis/twas:main"
         preemptible: "~{NumPrempt}"
         cpu: "4"
-        memory: "32 GB"
+        memory: "~{Memory} GB"
         disks: "local-disk 100 HDD"
     }
 }
@@ -42,6 +43,7 @@ workflow TWAS {
         File FineMapping
         String NameGWAS
         Int NumPrempt
+        Int Memory
 
     }
     call SusieTWAS {
@@ -51,7 +53,8 @@ workflow TWAS {
             SumStats = SumStats,
             SumStatsIndex = SumStatsIndex,
             NumPrempt = NumPrempt,
-            NameGWAS = NameGWAS
+            NameGWAS = NameGWAS,
+            Memory = Memory
     }
     output {
         File ResTWAS = SusieTWAS.OutTWAS 
