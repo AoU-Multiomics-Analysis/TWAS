@@ -4,23 +4,23 @@ version 1.0
 task SusieTWAS {
     input {
         File LDMatrix 
-        Array[File] SumStats 
-        Array[File] SumStatsIndex 
+        File SumStats 
+        File SumStatsIndex
+        String NameGWAS
         File FineMapping
-        String PhenotypeID
         Int NumPrempt
         }
 
     command <<<
     Rscript /tmp/susie_TWAS.R \
-        --PhenotypeID ~{PhenotypeID} \
         --LDMatrix ~{LDMatrix} \
         --SusieRes ~{FineMapping} \
-        --SummaryStats ~{sep="," SumStats}
+        --OutputPrefix ~{NameGWAS} \
+        --SummaryStats ~{SumStats}
     >>>
 
     output {
-        File OutTWAS = "~{PhenotypeID}.TWAS.txt" 
+        File OutTWAS = "~{SumStats}.TWAS.txt" 
         }
 
 
@@ -37,21 +37,21 @@ task SusieTWAS {
 workflow TWAS {
     input {
         File LDMatrix 
-        Array[File] SumStats
-        Array[File] SumStatsIndex
+        File SumStats
+        File SumStatsIndex
         File FineMapping
-        String PhenotypeID
+        String NameGWAS
         Int NumPrempt
 
     }
     call SusieTWAS {
         input:
             LDMatrix = LDMatrix,
-            PhenotypeID = PhenotypeID,
             FineMapping = FineMapping,
             SumStats = SumStats,
             SumStatsIndex = SumStatsIndex,
-            NumPrempt = NumPrempt
+            NumPrempt = NumPrempt,
+            NameGWAS = NameGWAS
     }
     output {
         File ResTWAS = SusieTWAS.OutTWAS 

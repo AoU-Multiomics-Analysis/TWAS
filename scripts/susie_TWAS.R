@@ -124,28 +124,23 @@ ResTWAS
 ######### PARSE COMMAND LINE ARGUMENTS #########
 option_list <- list(
     optparse::make_option(c("--LDMatrix"), type="character", default=NULL,
-                        help="Path to dose matrix", metavar = "type"),
-    optparse::make_option(c("--PhenotypeID"), type="character", default=NULL,
-                        help="Name of gene to compute LD on  ", metavar = "type"),
+                        help="Path to RDS object that is a list and contains a matrix for each gene in analysis", metavar = "type"),
     optparse::make_option(c("--SummaryStats"), type="character", default=NULL,
-                        help="comma seperated list of Sumstats to use", metavar = "type"),
+                        help="path to indexed summary stats", metavar = "type"),
     optparse::make_option(c("--SusieRes"), type="character", default=NULL,
                         help="Path to finemapping data for a gene", metavar = "type")
-    #optparse::make_option(c("--AlleleFrequencies"), type="character", default=NULL,
-    #                    help="Path to finemapping data for a gene", metavar = "type")
+    optparse::make_option(c("--OutputPrefix"), type="character", default=NULL,
+                        help="Path to finemapping data for a gene", metavar = "type")
+
     )
 
 opt <- optparse::parse_args(optparse::OptionParser(option_list=option_list))
 MatrixLD <- opt$LDMatrix
 FineMappingRes <- opt$SusieRes
 SummaryStats <- opt$SummaryStats
-OutFileName <- paste0(opt$PhenotypeID,'.TWAS.txt')
+OutFileName <- paste0(opt$OutputPrefix,'.TWAS.txt')
 PhenotypeID <- opt$PhenotypeID
-#PathAlleleFrequencies <- opt$AlleleFrequencies
 
-# convert comma seperated list of summary stat files into a dataframe 
-# to loop over and calculate TWAS Z scores 
-SummaryStatsList <- strsplit(SummaryStats,',')[[1]]
 
 ##################### LOAD DATA ##########################
 # loading finemapping data 
