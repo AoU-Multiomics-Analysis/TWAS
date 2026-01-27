@@ -16,6 +16,7 @@ susie_data
 
 
 
+
 extract_interval <- function(finemapping_data) {
     start <- min(as.numeric(finemapping_data$position))
     end <- max(as.numeric(finemapping_data$position))
@@ -37,16 +38,16 @@ extract_gwas_data <- function(input_susie,input_gwas) {
     colnames(gwas_dat) <- header
     cleaned_gwas_dat <- gwas_dat %>% 
                 mutate(
-                        base_pair_location = as.numeric(base_pair_location),
-                        p_value = as.numeric(p_value),
-                        beta = as.numeric(beta),
-                        standard_error = as.numeric(standard_error)
+                        POS = as.numeric(POS),
+                        Pvalue = as.numeric(Pvalue),
+                        BETA = as.numeric(BETA),
+                        SE = as.numeric(SE)
                     )  
     output <- input_susie %>% 
                 mutate(position = as.numeric(position)) %>% 
-                left_join(cleaned_gwas_dat,by = c('position' = 'base_pair_location','chromosome')) %>% 
-                mutate(allele_match = case_when(ref == other_allele & alt == effect_allele ~ TRUE,
-                                              ref == effect_allele & alt == other_allele ~ FALSE))  
+                left_join(cleaned_gwas_dat,by = c('position' = 'POS','chromosome' ='CHR')) %>% 
+                mutate(allele_match = case_when(ref == REF & alt == ALT ~ TRUE,
+                                              ref == REF & alt == ALT ~ FALSE))  
     output
 }
 
@@ -61,36 +62,65 @@ calculate_TWAS_Z <- function(variant_df,LD_matrix) {
     output
 }
 
-TWAS <- function(GWAS_path,SusieData,LD,PhenotypeID) {
+empty_twas_row <- function(gene_id, gwas_name = NA_character_) {
+  tibble(
+    gene = gene_id,
+    GWAS = gwas_name,
+    zscore = NA_real_,
+    pvalue = NA_real_
+  )
+}
+TWAS <- function(GWAS_path,SusieData,LD) {
 message('Extracting GWAS summary statistics for:')
 message(GWAS_path)
-GWAS <- extract_gwas_data(
-                    SusieData,
-                    GWAS_path 
-                    )
+PhenotypeID <- SusieData %>% distinct(geneID) %>% pull(geneID)
+message(PhenotypeID)
+  GWAS <- tryCatch(
+    extract_gwas_data(SusieData, GWAS_path),
+    error = function(e) {
+      message("GWAS extraction failed for ", PhenotypeID, " : ", e$message)
+      return(NULL)
+    }
+  )
 
+  if (is.null(GWAS) || nrow(GWAS) == 0) {
+    return(
+      empty_twas_row(
+        gene_id = PhenotypeID,
+        gwas_name = tools::file_path_sans_ext(basename(GWAS_path))
+      )
+    )
+  }
+GeneLD <- LD[[PhenotypeID]]
+    
 # filters gwas data based on number of measurements 
 # for each variant that are present in gwas data. 
 # Sometimes variants have multiple measurements in a gwas 
 # but im not qutie sure why
 FilteredGWAS <- GWAS %>%
     filter(allele_match == TRUE) %>% 
-    mutate(z = beta/standard_error) %>% 
+    mutate(z = BETA/SE) %>% 
     group_by(variant) %>% 
     filter(dplyr::n() == 1) %>% 
     ungroup()
 
-message('Computing TWAS Z')
+  if (nrow(FilteredGWAS) == 0) {
+    return(
+      empty_twas_row(
+        gene_id = PhenotypeID,
+        gwas_name = tools::file_path_sans_ext(basename(GWAS_path))
+      )
+    )
+  }
+#message('Computing TWAS Z')
 ResTWAS <- FilteredGWAS %>% 
-            calculate_TWAS_Z(LD) %>% 
+            calculate_TWAS_Z(GeneLD) %>% 
             mutate(gene = PhenotypeID,
                    GWAS = tools::file_path_sans_ext(basename(GWAS_path))
                     )
 
 ResTWAS
 }
-
-
 ######### PARSE COMMAND LINE ARGUMENTS #########
 option_list <- list(
     optparse::make_option(c("--LDMatrix"), type="character", default=NULL,
@@ -120,7 +150,7 @@ SummaryStatsList <- strsplit(SummaryStats,',')[[1]]
 ##################### LOAD DATA ##########################
 # loading finemapping data 
 message('Loading fine mapping')
-susie_dat <- load_susie_data(FineMappingRes) %>% 
+susie_dat <- fread(FineMappingRes) %>% 
                 mutate(variant = str_replace(variant,'chrchr','chr'))
 
 # Loads LD matrix
@@ -134,8 +164,12 @@ LD <- readRDS(MatrixLD)
 
 # loop over summary stats and perform TWAS 
 # for each phenotype 
-ResTWAS <-  SummaryStatsList %>%
-                map_dfr(~TWAS(.x, SusieData = susie_dat,LD = LD,PhenotypeID = PhenotypeID))
+#ResTWAS <-  SummaryStatsList %>%
+                #map_dfr(~TWAS(.x, SusieData = susie_dat,LD = LD,PhenotypeID = PhenotypeID))
 
-# write to output
+ResTWAS <- susie_dat %>% 
+    filter(molecular_trait_id %in% names(LDobj)) %>%    
+    mutate(geneID = molecular_trait_id) %>% 
+    group_by(molecular_trait_id) %>% 
+    group_modify(~TWAS(SummaryStats,.,LDobj))
 ResTWAS %>% write_tsv(OutFileName)
