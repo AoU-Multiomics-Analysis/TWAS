@@ -163,8 +163,8 @@ LD <- readRDS(MatrixLD)
                 #map_dfr(~TWAS(.x, SusieData = susie_dat,LD = LD,PhenotypeID = PhenotypeID))
 
 ResTWAS <- susie_dat %>% 
-    filter(molecular_trait_id %in% names(LDobj)) %>%    
+    filter(molecular_trait_id %in% names(LD)) %>%    
     mutate(geneID = molecular_trait_id) %>% 
     group_by(molecular_trait_id) %>% 
-    group_modify(~TWAS(SummaryStats,.,LDobj))
+    group_modify(~TWAS(SummaryStats,.,LD))
 ResTWAS %>% write_tsv(OutFileName)
