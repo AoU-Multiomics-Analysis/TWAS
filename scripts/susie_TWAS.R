@@ -146,7 +146,11 @@ PhenotypeID <- opt$PhenotypeID
 # loading finemapping data 
 message('Loading fine mapping')
 susie_dat <- fread(FineMappingRes) %>% 
-                mutate(variant = str_replace(variant,'chrchr','chr'))
+                mutate(variant = str_replace(variant,'chrchr','chr')) %>% 
+                mutate(chromosome = str_remove_all(chromosome,'chr')) %>% 
+                mutate(chromosome = paste0('chr',chromosome)) 
+
+
 
 # Loads LD matrix
 message('Loading LD matrix')
