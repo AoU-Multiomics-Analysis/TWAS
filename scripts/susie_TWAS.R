@@ -52,14 +52,101 @@ extract_gwas_data <- function(input_susie,input_gwas) {
 }
 
 calculate_TWAS_Z <- function(variant_df,LD_matrix) {
-    subset_LD <- LD_matrix[variant_df$variant,variant_df$variant]
+    components <- calculate_TWAS_components(variant_df, LD_matrix)
+    components %>% select(zscore, pvalue, stat)
+}
+
+as_numeric_scalar <- function(x) {
+    as.numeric(x)[1]
+}
+
+calculate_TWAS_components <- function(variant_df, LD_matrix) {
+    if (nrow(variant_df) == 0) {
+        stop("variant_df must contain at least one variant.")
+    }
+
+    missing_variants <- union(
+        setdiff(variant_df$variant, rownames(LD_matrix)),
+        setdiff(variant_df$variant, colnames(LD_matrix))
+    )
+    if (length(missing_variants) > 0) {
+        stop(
+            paste0(
+                "Variants missing from LD matrix: ",
+                paste(utils::head(missing_variants, 10), collapse = ", ")
+            )
+        )
+    }
+
+    subset_LD <- LD_matrix[variant_df$variant,variant_df$variant,drop = FALSE]
     denom <- t(variant_df$posterior_mean) %*% data.matrix(subset_LD) %*%  variant_df$posterior_mean
     stat <- t(variant_df$posterior_mean) %*%  variant_df$z
 
     zscore <- stat/sqrt(denom)
     pvalue <- pchisq(zscore * zscore,1,lower.tail = FALSE)
-    output <- data.frame(zscore = zscore,pvalue = pvalue,stat = stat) 
+    output <- data.frame(
+        zscore = as_numeric_scalar(zscore),
+        pvalue = as_numeric_scalar(pvalue),
+        stat = as_numeric_scalar(stat),
+        denom = as_numeric_scalar(denom)
+    )
     output
+}
+
+parse_rare_indicator <- function(x) {
+    if (any(is.na(x))) {
+        stop("Rare indicator contains missing values.")
+    }
+
+    if (is.logical(x)) {
+        return(x)
+    }
+
+    if (is.numeric(x) || is.integer(x)) {
+        return(x != 0)
+    }
+
+    x_clean <- tolower(trimws(as.character(x)))
+    true_values <- c("true", "t", "1", "yes", "y", "rare")
+    false_values <- c("false", "f", "0", "no", "n", "common")
+    allowed_values <- c(true_values, false_values, NA_character_)
+
+    unknown_values <- setdiff(unique(x_clean), allowed_values)
+    if (length(unknown_values) > 0) {
+        stop(
+            paste0(
+                "Could not parse rare indicator values: ",
+                paste(unknown_values, collapse = ", ")
+            )
+        )
+    }
+
+    x_clean %in% true_values
+}
+
+is_single_ld_matrix <- function(LD) {
+    is.matrix(LD) || inherits(LD, "Matrix")
+}
+
+genes_with_ld <- function(LD, susie_dat) {
+    if (!is_single_ld_matrix(LD)) {
+        return(names(LD))
+    }
+
+    gene_ids <- unique(susie_dat$molecular_trait_id)
+    if (length(gene_ids) != 1) {
+        stop("LDMatrix is a single matrix, but SusieRes contains multiple genes.")
+    }
+
+    gene_ids
+}
+
+get_gene_ld <- function(LD, gene_id) {
+    if (is_single_ld_matrix(LD)) {
+        return(LD)
+    }
+
+    LD[[gene_id]]
 }
 
 empty_twas_row <- function(gene_id, gwas_name = NA_character_) {
@@ -70,6 +157,187 @@ empty_twas_row <- function(gene_id, gwas_name = NA_character_) {
     pvalue = NA_real_
   )
 }
+
+empty_two_predictor_twas_row <- function(gene_id, gwas_name = NA_character_, status = NA_character_) {
+  tibble(
+    gene = gene_id,
+    GWAS = gwas_name,
+    n_variants = NA_integer_,
+    n_common = NA_integer_,
+    n_rare = NA_integer_,
+    full_zscore = NA_real_,
+    full_pvalue = NA_real_,
+    full_stat = NA_real_,
+    full_denom = NA_real_,
+    common_zscore = NA_real_,
+    common_pvalue = NA_real_,
+    common_stat = NA_real_,
+    common_denom = NA_real_,
+    rare_zscore = NA_real_,
+    rare_pvalue = NA_real_,
+    rare_stat = NA_real_,
+    rare_denom = NA_real_,
+    Vcc = NA_real_,
+    Vrr = NA_real_,
+    Vcr = NA_real_,
+    Vcor = NA_real_,
+    chisq_joint = NA_real_,
+    p_joint = NA_real_,
+    rare_cond_stat = NA_real_,
+    rare_cond_var = NA_real_,
+    z_rare_cond = NA_real_,
+    p_rare_cond = NA_real_,
+    status = status
+  )
+}
+
+calculate_two_predictor_TWAS <- function(variant_df, LD_matrix, rare_col = "rare") {
+    if (!rare_col %in% colnames(variant_df)) {
+        stop(paste0("Missing rare indicator column: ", rare_col))
+    }
+
+    variant_df <- variant_df %>%
+        mutate(
+            posterior_mean = as.numeric(posterior_mean),
+            z = as.numeric(z),
+            rare_indicator = parse_rare_indicator(.data[[rare_col]])
+        )
+
+    full_components <- calculate_TWAS_components(variant_df, LD_matrix)
+    common_df <- variant_df %>% filter(!rare_indicator)
+    rare_df <- variant_df %>% filter(rare_indicator)
+
+    base_result <- tibble(
+        n_variants = nrow(variant_df),
+        n_common = nrow(common_df),
+        n_rare = nrow(rare_df),
+        full_zscore = full_components$zscore,
+        full_pvalue = full_components$pvalue,
+        full_stat = full_components$stat,
+        full_denom = full_components$denom
+    )
+
+    if (nrow(common_df) == 0 || nrow(rare_df) == 0) {
+        return(
+            bind_cols(
+                base_result,
+                tibble(
+                    common_zscore = NA_real_,
+                    common_pvalue = NA_real_,
+                    common_stat = NA_real_,
+                    common_denom = NA_real_,
+                    rare_zscore = NA_real_,
+                    rare_pvalue = NA_real_,
+                    rare_stat = NA_real_,
+                    rare_denom = NA_real_,
+                    Vcc = NA_real_,
+                    Vrr = NA_real_,
+                    Vcr = NA_real_,
+                    Vcor = NA_real_,
+                    chisq_joint = NA_real_,
+                    p_joint = NA_real_,
+                    rare_cond_stat = NA_real_,
+                    rare_cond_var = NA_real_,
+                    z_rare_cond = NA_real_,
+                    p_rare_cond = NA_real_,
+                    status = "need both common and rare variants"
+                )
+            )
+        )
+    }
+
+    common_components <- calculate_TWAS_components(common_df, LD_matrix)
+    rare_components <- calculate_TWAS_components(rare_df, LD_matrix)
+
+    common_rare_LD <- LD_matrix[common_df$variant, rare_df$variant, drop = FALSE]
+    Vcc <- common_components$denom
+    Vrr <- rare_components$denom
+    Vcr <- as_numeric_scalar(
+        t(common_df$posterior_mean) %*%
+            data.matrix(common_rare_LD) %*%
+            rare_df$posterior_mean
+    )
+
+    if (!is.finite(Vcc) || !is.finite(Vrr) || Vcc <= 0 || Vrr <= 0) {
+        return(
+            bind_cols(
+                base_result,
+                tibble(
+                    common_zscore = common_components$zscore,
+                    common_pvalue = common_components$pvalue,
+                    common_stat = common_components$stat,
+                    common_denom = common_components$denom,
+                    rare_zscore = rare_components$zscore,
+                    rare_pvalue = rare_components$pvalue,
+                    rare_stat = rare_components$stat,
+                    rare_denom = rare_components$denom,
+                    Vcc = Vcc,
+                    Vrr = Vrr,
+                    Vcr = Vcr,
+                    Vcor = NA_real_,
+                    chisq_joint = NA_real_,
+                    p_joint = NA_real_,
+                    rare_cond_stat = NA_real_,
+                    rare_cond_var = NA_real_,
+                    z_rare_cond = NA_real_,
+                    p_rare_cond = NA_real_,
+                    status = "non-positive predictor variance"
+                )
+            )
+        )
+    }
+
+    V <- matrix(c(Vcc, Vcr, Vcr, Vrr), nrow = 2, byrow = TRUE)
+    s <- c(common_components$stat, rare_components$stat)
+    chisq_joint <- tryCatch(
+        as_numeric_scalar(t(s) %*% solve(V) %*% s),
+        error = function(e) NA_real_
+    )
+    p_joint <- ifelse(
+        is.na(chisq_joint),
+        NA_real_,
+        pchisq(chisq_joint, df = 2, lower.tail = FALSE)
+    )
+
+    rare_cond_stat <- rare_components$stat - Vcr / Vcc * common_components$stat
+    rare_cond_var <- Vrr - Vcr^2 / Vcc
+    z_rare_cond <- ifelse(
+        is.finite(rare_cond_var) && rare_cond_var > 0,
+        rare_cond_stat / sqrt(rare_cond_var),
+        NA_real_
+    )
+    p_rare_cond <- ifelse(
+        is.na(z_rare_cond),
+        NA_real_,
+        pchisq(z_rare_cond^2, df = 1, lower.tail = FALSE)
+    )
+
+    bind_cols(
+        base_result,
+        tibble(
+            common_zscore = common_components$zscore,
+            common_pvalue = common_components$pvalue,
+            common_stat = common_components$stat,
+            common_denom = common_components$denom,
+            rare_zscore = rare_components$zscore,
+            rare_pvalue = rare_components$pvalue,
+            rare_stat = rare_components$stat,
+            rare_denom = rare_components$denom,
+            Vcc = Vcc,
+            Vrr = Vrr,
+            Vcr = Vcr,
+            Vcor = Vcr / sqrt(Vcc * Vrr),
+            chisq_joint = chisq_joint,
+            p_joint = p_joint,
+            rare_cond_stat = rare_cond_stat,
+            rare_cond_var = rare_cond_var,
+            z_rare_cond = z_rare_cond,
+            p_rare_cond = p_rare_cond,
+            status = ifelse(is.na(chisq_joint) || is.na(z_rare_cond), "singular covariance", "ok")
+        )
+    )
+}
+
 TWAS <- function(GWAS_path,SusieData,LD) {
 message('Extracting GWAS summary statistics for:')
 message(GWAS_path)
@@ -91,7 +359,15 @@ message(PhenotypeID)
       )
     )
   }
-GeneLD <- LD[[PhenotypeID]]
+GeneLD <- get_gene_ld(LD, PhenotypeID)
+  if (is.null(GeneLD)) {
+    return(
+      empty_twas_row(
+        gene_id = PhenotypeID,
+        gwas_name = tools::file_path_sans_ext(basename(GWAS_path))
+      )
+    )
+  }
     
 # filters gwas data based on number of measurements 
 # for each variant that are present in gwas data. 
@@ -121,54 +397,131 @@ ResTWAS <- FilteredGWAS %>%
 
 ResTWAS
 }
-######### PARSE COMMAND LINE ARGUMENTS #########
-option_list <- list(
-    optparse::make_option(c("--LDMatrix"), type="character", default=NULL,
-                        help="Path to RDS object that is a list and contains a matrix for each gene in analysis", metavar = "type"),
-    optparse::make_option(c("--SummaryStats"), type="character", default=NULL,
-                        help="path to indexed summary stats", metavar = "type"),
-    optparse::make_option(c("--SusieRes"), type="character", default=NULL,
-                        help="Path to finemapping data for a gene", metavar = "type"),
-    optparse::make_option(c("--OutputPrefix"), type="character", default=NULL,
-                        help="Path to finemapping data for a gene", metavar = "type")
 
+TWAS_two_predictor <- function(GWAS_path, SusieData, LD, rare_col = "rare") {
+message('Extracting GWAS summary statistics for:')
+message(GWAS_path)
+PhenotypeID <- SusieData %>% distinct(geneID) %>% pull(geneID)
+message(PhenotypeID)
+  GWAS <- tryCatch(
+    extract_gwas_data(SusieData, GWAS_path),
+    error = function(e) {
+      message("GWAS extraction failed for ", PhenotypeID, " : ", e$message)
+      return(NULL)
+    }
+  )
+
+  gwas_name <- tools::file_path_sans_ext(basename(GWAS_path))
+  if (is.null(GWAS) || nrow(GWAS) == 0) {
+    return(
+      empty_two_predictor_twas_row(
+        gene_id = PhenotypeID,
+        gwas_name = gwas_name,
+        status = "no GWAS variants"
+      )
     )
+  }
+GeneLD <- get_gene_ld(LD, PhenotypeID)
+  if (is.null(GeneLD)) {
+    return(
+      empty_two_predictor_twas_row(
+        gene_id = PhenotypeID,
+        gwas_name = gwas_name,
+        status = "no LD matrix for gene"
+      )
+    )
+  }
+    
+FilteredGWAS <- GWAS %>%
+    filter(allele_match == TRUE) %>% 
+    mutate(z = BETA/SE) %>% 
+    group_by(variant) %>% 
+    filter(dplyr::n() == 1) %>% 
+    ungroup()
 
-opt <- optparse::parse_args(optparse::OptionParser(option_list=option_list))
-MatrixLD <- opt$LDMatrix
-FineMappingRes <- opt$SusieRes
-SummaryStats <- opt$SummaryStats
-OutFileName <- paste0(opt$OutputPrefix,'.TWAS.txt')
-PhenotypeID <- opt$PhenotypeID
+  if (nrow(FilteredGWAS) == 0) {
+    return(
+      empty_two_predictor_twas_row(
+        gene_id = PhenotypeID,
+        gwas_name = gwas_name,
+        status = "no uniquely matched GWAS variants"
+      )
+    )
+  }
+
+ResTWAS <- tryCatch(
+    calculate_two_predictor_TWAS(FilteredGWAS, GeneLD, rare_col = rare_col) %>% 
+        mutate(
+            gene = PhenotypeID,
+            GWAS = gwas_name,
+            .before = 1
+        ),
+    error = function(e) {
+        message("Two-predictor TWAS failed for ", PhenotypeID, " : ", e$message)
+        empty_two_predictor_twas_row(
+            gene_id = PhenotypeID,
+            gwas_name = gwas_name,
+            status = e$message
+        )
+    }
+)
+
+ResTWAS
+}
+
+run_susie_TWAS <- function() {
+    ######### PARSE COMMAND LINE ARGUMENTS #########
+    option_list <- list(
+        optparse::make_option(c("--LDMatrix"), type="character", default=NULL,
+                            help="Path to RDS object that is a list and contains a matrix for each gene in analysis", metavar = "type"),
+        optparse::make_option(c("--SummaryStats"), type="character", default=NULL,
+                            help="path to indexed summary stats", metavar = "type"),
+        optparse::make_option(c("--SusieRes"), type="character", default=NULL,
+                            help="Path to finemapping data for a gene", metavar = "type"),
+        optparse::make_option(c("--OutputPrefix"), type="character", default=NULL,
+                            help="Path to finemapping data for a gene", metavar = "type")
+
+        )
+
+    opt <- optparse::parse_args(optparse::OptionParser(option_list=option_list))
+    MatrixLD <- opt$LDMatrix
+    FineMappingRes <- opt$SusieRes
+    SummaryStats <- opt$SummaryStats
+    OutFileName <- paste0(opt$OutputPrefix,'.TWAS.txt')
 
 
-##################### LOAD DATA ##########################
-# loading finemapping data 
-message('Loading fine mapping')
-susie_dat <- fread(FineMappingRes) %>% 
-                mutate(variant = str_replace(variant,'chrchr','chr')) %>% 
-                mutate(chromosome = str_remove_all(chromosome,'chr')) %>% 
-                mutate(chromosome = paste0('chr',chromosome)) 
+    ##################### LOAD DATA ##########################
+    # loading finemapping data 
+    message('Loading fine mapping')
+    susie_dat <- fread(FineMappingRes) %>% 
+                    mutate(variant = str_replace(variant,'chrchr','chr')) %>% 
+                    mutate(chromosome = str_remove_all(chromosome,'chr')) %>% 
+                    mutate(chromosome = paste0('chr',chromosome)) 
 
 
 
-# Loads LD matrix
-message('Loading LD matrix')
-LD <- readRDS(MatrixLD)
+    # Loads LD matrix
+    message('Loading LD matrix')
+    LD <- readRDS(MatrixLD)
 
-############# COMPUTE TWAS Z SCORE ########################
-# computes TWAS Z statistic 
-#ResTWAS <-  susie_dat %>%
-            #TWAS(SummaryStats,LD,PhenotypeID)
+    ############# COMPUTE TWAS Z SCORE ########################
+    # computes TWAS Z statistic 
+    #ResTWAS <-  susie_dat %>%
+                #TWAS(SummaryStats,LD,PhenotypeID)
 
-# loop over summary stats and perform TWAS 
-# for each phenotype 
-#ResTWAS <-  SummaryStatsList %>%
-                #map_dfr(~TWAS(.x, SusieData = susie_dat,LD = LD,PhenotypeID = PhenotypeID))
+    # loop over summary stats and perform TWAS 
+    # for each phenotype 
+    #ResTWAS <-  SummaryStatsList %>%
+                    #map_dfr(~TWAS(.x, SusieData = susie_dat,LD = LD,PhenotypeID = PhenotypeID))
 
-ResTWAS <- susie_dat %>% 
-    filter(molecular_trait_id %in% names(LD)) %>%    
-    mutate(geneID = molecular_trait_id) %>% 
-    group_by(molecular_trait_id) %>% 
-    group_modify(~TWAS(SummaryStats,.,LD))
-ResTWAS %>% write_tsv(OutFileName)
+    ResTWAS <- susie_dat %>% 
+        filter(molecular_trait_id %in% genes_with_ld(LD, susie_dat)) %>%    
+        mutate(geneID = molecular_trait_id) %>% 
+        group_by(molecular_trait_id) %>% 
+        group_modify(~TWAS(SummaryStats,.,LD))
+    ResTWAS %>% write_tsv(OutFileName)
+}
+
+if (sys.nframe() == 0) {
+    run_susie_TWAS()
+}

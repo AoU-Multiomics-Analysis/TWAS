@@ -7,6 +7,9 @@ workflows:
     primaryDescriptorPath: /workflows/susie_TWAS.wdl
     name: "SusieTWAS"
   - subclass: WDL 
+    primaryDescriptorPath: /workflows/conditional_rare_TWAS.wdl
+    name: "ConditionalRareTWAS"
+  - subclass: WDL 
     primaryDescriptorPath: /workflows/aggregate_TWAS.wdl
     name: "AggregateTWAS"
   - subclass: WDL 
