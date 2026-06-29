@@ -8,6 +8,9 @@ task SusieTWAS {
         File SumStatsIndex
         String NameGWAS
         File FineMapping
+        File? GeneFilter
+        String ChosenLabel = ""
+        String QTLType = ""
         Int NumPrempt
         Int Memory
         }
@@ -17,7 +20,10 @@ task SusieTWAS {
         --LDMatrix ~{LDMatrix} \
         --SusieRes ~{FineMapping} \
         --OutputPrefix ~{NameGWAS} \
-        --SummaryStats ~{SumStats}
+        --SummaryStats ~{SumStats} \
+        --ChosenLabel "~{ChosenLabel}" \
+        --QTLType "~{QTLType}" \
+        --GeneFilter '~{if defined(GeneFilter) then select_first([GeneFilter]) else ""}'
     >>>
 
     output {
@@ -42,6 +48,9 @@ workflow TWAS {
         File SumStatsIndex
         File FineMapping
         String NameGWAS
+        File? GeneFilter
+        String ChosenLabel = ""
+        String QTLType = ""
         Int NumPrempt
         Int Memory
 
@@ -52,6 +61,9 @@ workflow TWAS {
             FineMapping = FineMapping,
             SumStats = SumStats,
             SumStatsIndex = SumStatsIndex,
+            GeneFilter = GeneFilter,
+            ChosenLabel = ChosenLabel,
+            QTLType = QTLType,
             NumPrempt = NumPrempt,
             NameGWAS = NameGWAS,
             Memory = Memory

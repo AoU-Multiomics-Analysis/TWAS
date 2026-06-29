@@ -163,6 +163,102 @@ ensure_rare_column <- function(variant_df, rare_col = "rare", af_col = "gvs_max_
     variant_df
 }
 
+is_empty_option <- function(x) {
+    is.null(x) || length(x) == 0 || is.na(x) || trimws(as.character(x)) == ""
+}
+
+parse_filter_logical <- function(x, column_name) {
+    if (is.logical(x)) {
+        return(replace_na(x, FALSE))
+    }
+
+    if (is.numeric(x) || is.integer(x)) {
+        return(!is.na(x) & x != 0)
+    }
+
+    x_clean <- tolower(trimws(as.character(x)))
+    true_values <- c("true", "t", "1", "yes", "y")
+    false_values <- c("false", "f", "0", "no", "n", "", "na", "nan")
+    allowed_values <- c(true_values, false_values)
+
+    unknown_values <- setdiff(unique(x_clean[!is.na(x_clean)]), allowed_values)
+    if (length(unknown_values) > 0) {
+        stop(
+            paste0(
+                "Could not parse logical values in ", column_name, ": ",
+                paste(unknown_values, collapse = ", ")
+            )
+        )
+    }
+
+    !is.na(x_clean) & x_clean %in% true_values
+}
+
+filter_susie_genes <- function(susie_dat, gene_filter_path = NULL, chosen_label = NULL, qtl_type = NULL) {
+    if (is_empty_option(gene_filter_path)) {
+        return(susie_dat)
+    }
+
+    message("Loading gene filter")
+    gene_filter <- fread(gene_filter_path)
+    required_columns <- c("Gene", "Coloc")
+    missing_columns <- setdiff(required_columns, colnames(gene_filter))
+    if (length(missing_columns) > 0) {
+        stop(
+            paste0(
+                "Gene filter is missing required columns: ",
+                paste(missing_columns, collapse = ", ")
+            )
+        )
+    }
+
+    gene_filter <- gene_filter %>%
+        mutate(.coloc_keep = parse_filter_logical(Coloc, "Coloc")) %>%
+        filter(.coloc_keep)
+
+    if (!is_empty_option(chosen_label)) {
+        if (!"chosen_label" %in% colnames(gene_filter)) {
+            stop("Gene filter is missing required column for --ChosenLabel: chosen_label")
+        }
+        gene_filter <- gene_filter %>%
+            filter(.data$chosen_label == .env$chosen_label)
+    }
+
+    if (!is_empty_option(qtl_type)) {
+        if (!"type" %in% colnames(gene_filter)) {
+            stop("Gene filter is missing required column for --QTLType: type")
+        }
+        gene_filter <- gene_filter %>%
+            filter(.data$type == .env$qtl_type)
+    }
+
+    keep_genes <- gene_filter %>%
+        mutate(Gene = as.character(Gene)) %>%
+        filter(!is.na(Gene), Gene != "") %>%
+        distinct(Gene) %>%
+        pull(Gene)
+
+    if (length(keep_genes) == 0) {
+        stop("No genes remain after applying gene filter.")
+    }
+
+    output <- susie_dat %>%
+        filter(molecular_trait_id %in% keep_genes)
+
+    if (nrow(output) == 0) {
+        stop("No SuSiE variants remain after applying gene filter.")
+    }
+
+    message(
+        paste0(
+            "Gene filter retained ",
+            dplyr::n_distinct(output$molecular_trait_id),
+            " genes in SuSiE data"
+        )
+    )
+    output
+}
+
 is_single_ld_matrix <- function(LD) {
     is.matrix(LD) || inherits(LD, "Matrix")
 }
@@ -516,7 +612,13 @@ run_susie_TWAS <- function() {
         optparse::make_option(c("--SusieRes"), type="character", default=NULL,
                             help="Path to finemapping data for a gene", metavar = "type"),
         optparse::make_option(c("--OutputPrefix"), type="character", default=NULL,
-                            help="Path to finemapping data for a gene", metavar = "type")
+                            help="Path to finemapping data for a gene", metavar = "type"),
+        optparse::make_option(c("--GeneFilter"), type="character", default=NULL,
+                            help="Optional path to gene filter TSV. Always filters Coloc == TRUE when provided.", metavar = "type"),
+        optparse::make_option(c("--ChosenLabel"), type="character", default=NULL,
+                            help="Optional chosen_label value to filter GeneFilter.", metavar = "type"),
+        optparse::make_option(c("--QTLType"), type="character", default=NULL,
+                            help="Optional type value to filter GeneFilter.", metavar = "type")
 
         )
 
@@ -524,6 +626,9 @@ run_susie_TWAS <- function() {
     MatrixLD <- opt$LDMatrix
     FineMappingRes <- opt$SusieRes
     SummaryStats <- opt$SummaryStats
+    GeneFilter <- opt$GeneFilter
+    ChosenLabel <- opt$ChosenLabel
+    QTLType <- opt$QTLType
     OutFileName <- paste0(opt$OutputPrefix,'.TWAS.txt')
 
 
@@ -534,6 +639,12 @@ run_susie_TWAS <- function() {
                     mutate(variant = str_replace(variant,'chrchr','chr')) %>% 
                     mutate(chromosome = str_remove_all(chromosome,'chr')) %>% 
                     mutate(chromosome = paste0('chr',chromosome)) 
+    susie_dat <- filter_susie_genes(
+        susie_dat,
+        gene_filter_path = GeneFilter,
+        chosen_label = ChosenLabel,
+        qtl_type = QTLType
+    )
 
 
 

@@ -38,7 +38,13 @@ option_list <- list(
     optparse::make_option(c("--OutputPrefix"), type = "character", default = NULL,
                           help = "Output prefix."),
     optparse::make_option(c("--RareColumn"), type = "character", default = "rare",
-                          help = "Column in SusieRes marking rare variants. If missing, infer from gvs_max_af < 0.01. Default: rare")
+                          help = "Column in SusieRes marking rare variants. If missing, infer from gvs_max_af < 0.01. Default: rare"),
+    optparse::make_option(c("--GeneFilter"), type = "character", default = NULL,
+                          help = "Optional path to gene filter TSV. Always filters Coloc == TRUE when provided."),
+    optparse::make_option(c("--ChosenLabel"), type = "character", default = NULL,
+                          help = "Optional chosen_label value to filter GeneFilter."),
+    optparse::make_option(c("--QTLType"), type = "character", default = NULL,
+                          help = "Optional type value to filter GeneFilter.")
 )
 
 opt <- optparse::parse_args(optparse::OptionParser(option_list = option_list))
@@ -48,6 +54,9 @@ FineMappingRes <- required_option(opt, "SusieRes")
 SummaryStats <- required_option(opt, "SummaryStats")
 OutputPrefix <- required_option(opt, "OutputPrefix")
 RareColumn <- opt$RareColumn
+GeneFilter <- opt$GeneFilter
+ChosenLabel <- opt$ChosenLabel
+QTLType <- opt$QTLType
 OutFileName <- paste0(OutputPrefix, ".TWAS.two_predictor.txt")
 
 message("Loading fine mapping")
@@ -57,6 +66,12 @@ susie_dat <- fread(FineMappingRes) %>%
     mutate(chromosome = paste0("chr", chromosome))
 
 susie_dat <- ensure_rare_column(susie_dat, rare_col = RareColumn)
+susie_dat <- filter_susie_genes(
+    susie_dat,
+    gene_filter_path = GeneFilter,
+    chosen_label = ChosenLabel,
+    qtl_type = QTLType
+)
 
 message("Loading LD matrix")
 LD <- readRDS(MatrixLD)

@@ -9,6 +9,9 @@ task ConditionalRareTWAS {
         String NameGWAS
         File FineMapping
         String RareColumn = "rare"
+        File? GeneFilter
+        String ChosenLabel = ""
+        String QTLType = ""
         Int NumPrempt
         Int Memory
     }
@@ -19,7 +22,10 @@ task ConditionalRareTWAS {
         --SusieRes ~{FineMapping} \
         --OutputPrefix ~{NameGWAS} \
         --SummaryStats ~{SumStats} \
-        --RareColumn ~{RareColumn}
+        --RareColumn ~{RareColumn} \
+        --ChosenLabel "~{ChosenLabel}" \
+        --QTLType "~{QTLType}" \
+        --GeneFilter '~{if defined(GeneFilter) then select_first([GeneFilter]) else ""}'
     >>>
 
     output {
@@ -44,6 +50,9 @@ workflow ConditionalRareTWASAnalysis {
         File FineMapping
         String NameGWAS
         String RareColumn = "rare"
+        File? GeneFilter
+        String ChosenLabel = ""
+        String QTLType = ""
         Int NumPrempt
         Int Memory
     }
@@ -54,6 +63,9 @@ workflow ConditionalRareTWASAnalysis {
             FineMapping = FineMapping,
             SumStats = SumStats,
             SumStatsIndex = SumStatsIndex,
+            GeneFilter = GeneFilter,
+            ChosenLabel = ChosenLabel,
+            QTLType = QTLType,
             NumPrempt = NumPrempt,
             NameGWAS = NameGWAS,
             RareColumn = RareColumn,
