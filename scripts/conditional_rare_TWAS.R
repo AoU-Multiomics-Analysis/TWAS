@@ -40,7 +40,7 @@ option_list <- list(
     optparse::make_option(c("--RareColumn"), type = "character", default = "rare",
                           help = "Column in SusieRes marking rare variants. If missing, infer from gvs_max_af < 0.01. Default: rare"),
     optparse::make_option(c("--GeneFilter"), type = "character", default = NULL,
-                          help = "Optional path to gene filter TSV. Always filters Coloc == TRUE when provided."),
+                          help = "Optional path to gene filter TSV. Always filters Coloc == TRUE when provided. Trailing GENCODE version suffixes are ignored for gene matching."),
     optparse::make_option(c("--ChosenLabel"), type = "character", default = NULL,
                           help = "Optional chosen_label value to filter GeneFilter."),
     optparse::make_option(c("--QTLType"), type = "character", default = NULL,

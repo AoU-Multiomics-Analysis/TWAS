@@ -194,6 +194,10 @@ parse_filter_logical <- function(x, column_name) {
     !is.na(x_clean) & x_clean %in% true_values
 }
 
+strip_gene_version <- function(gene_id) {
+    sub("\\.[0-9]+$", "", as.character(gene_id))
+}
+
 filter_susie_genes <- function(susie_dat, gene_filter_path = NULL, chosen_label = NULL, qtl_type = NULL) {
     if (is_empty_option(gene_filter_path)) {
         return(susie_dat)
@@ -237,13 +241,17 @@ filter_susie_genes <- function(susie_dat, gene_filter_path = NULL, chosen_label 
         filter(!is.na(Gene), Gene != "") %>%
         distinct(Gene) %>%
         pull(Gene)
+    keep_gene_match_ids <- strip_gene_version(keep_genes)
+    keep_gene_match_ids <- unique(keep_gene_match_ids[!is.na(keep_gene_match_ids) & keep_gene_match_ids != ""])
 
-    if (length(keep_genes) == 0) {
+    if (length(keep_gene_match_ids) == 0) {
         stop("No genes remain after applying gene filter.")
     }
 
     output <- susie_dat %>%
-        filter(molecular_trait_id %in% keep_genes)
+        mutate(.gene_match_id = strip_gene_version(molecular_trait_id)) %>%
+        filter(.gene_match_id %in% keep_gene_match_ids) %>%
+        select(-.gene_match_id)
 
     if (nrow(output) == 0) {
         stop("No SuSiE variants remain after applying gene filter.")
@@ -614,7 +622,7 @@ run_susie_TWAS <- function() {
         optparse::make_option(c("--OutputPrefix"), type="character", default=NULL,
                             help="Path to finemapping data for a gene", metavar = "type"),
         optparse::make_option(c("--GeneFilter"), type="character", default=NULL,
-                            help="Optional path to gene filter TSV. Always filters Coloc == TRUE when provided.", metavar = "type"),
+                            help="Optional path to gene filter TSV. Always filters Coloc == TRUE when provided. Trailing GENCODE version suffixes are ignored for gene matching.", metavar = "type"),
         optparse::make_option(c("--ChosenLabel"), type="character", default=NULL,
                             help="Optional chosen_label value to filter GeneFilter.", metavar = "type"),
         optparse::make_option(c("--QTLType"), type="character", default=NULL,
