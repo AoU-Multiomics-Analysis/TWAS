@@ -139,8 +139,23 @@ ensure_rare_column <- function(variant_df, rare_col = "rare", af_col = "gvs_max_
     }
 
     max_af <- suppressWarnings(as.numeric(variant_df[[af_col]]))
-    if (any(is.na(max_af))) {
-        stop(paste0("Could not infer rare status because ", af_col, " contains missing or non-numeric values."))
+    missing_af <- is.na(max_af)
+    if (any(missing_af)) {
+        message(
+            paste0(
+                "Filtering ",
+                sum(missing_af),
+                " variants with missing or non-numeric ",
+                af_col,
+                " before rare annotation"
+            )
+        )
+        variant_df <- variant_df[!missing_af, ]
+        max_af <- max_af[!missing_af]
+    }
+
+    if (nrow(variant_df) == 0) {
+        stop(paste0("No variants remain after filtering missing or non-numeric ", af_col, " values."))
     }
 
     message(paste0("Rare column ", rare_col, " not found; defining it as ", af_col, " < ", af_threshold))
