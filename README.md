@@ -62,6 +62,22 @@ Performs the core TWAS analysis for a gene. For each provided set of GWAS summar
 
 ---
 
+### `conditional_rare_TWAS.R`
+
+Computes a two-predictor TWAS follow-up test by splitting each gene's full SuSiE model into common and rare components using the `rare` column in the fine-mapping results. The script reports the common-only component, rare-only component, joint 2-df test, and conditional rare-variant test.
+
+**Inputs:**
+- `--LDMatrix` – Path to an RDS LD object. This can be a named list of LD matrices, one per gene, or a single-gene LD matrix.
+- `--SusieRes` – Path to a tab-separated file of SuSiE fine-mapping results. Must include the same columns used by `susie_TWAS.R` plus a `rare` column.
+- `--SummaryStats` – Path to a bgzipped, tabix-indexed GWAS summary statistics file.
+- `--OutputPrefix` – Prefix for the output file name.
+- `--RareColumn` – Optional name of the rare indicator column. Defaults to `rare`.
+
+**Outputs:**
+- `<OutputPrefix>.TWAS.two_predictor.txt` – A tab-separated file with full, common, rare, joint, and rare-conditional TWAS statistics for each gene.
+
+---
+
 ### `aggregate_TWAS.R`
 
 Aggregates multiple per-gene TWAS result files (output of `susie_TWAS.R`) into a single merged TSV file.
@@ -151,6 +167,33 @@ Runs the TWAS analysis for a gene against a single set of GWAS summary statistic
 | Name | Type | Description |
 |------|------|-------------|
 | `ResTWAS` | File | Tab-separated TWAS results file (`<NameGWAS>.TWAS.txt`) |
+
+---
+
+### `conditional_rare_TWAS.wdl`
+
+**Workflow:** `ConditionalRareTWASAnalysis`
+
+Runs the conditional rare/common two-predictor TWAS analysis by executing `conditional_rare_TWAS.R`. Uses the same LD matrix, fine-mapping results, and GWAS summary statistics as `susie_TWAS.wdl`, with an additional rare-variant indicator column.
+
+**Inputs:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `LDMatrix` | File | RDS LD matrix file or named list of gene LD matrices |
+| `SumStats` | File | Bgzipped, tabix-indexed GWAS summary statistics file |
+| `SumStatsIndex` | File | Tabix index (`.tbi`) for the summary statistics file |
+| `FineMapping` | File | SuSiE fine-mapping results file containing a rare indicator column |
+| `NameGWAS` | String | Name/prefix for the GWAS (used in output file naming) |
+| `RareColumn` | String | Rare indicator column in `FineMapping`; defaults to `rare` |
+| `Memory` | Int | Memory in GB for the runtime |
+| `NumPrempt` | Int | Number of preemptible retries |
+
+**Outputs:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `ResTWAS` | File | Tab-separated two-predictor TWAS results file (`<NameGWAS>.TWAS.two_predictor.txt`) |
 
 ---
 
