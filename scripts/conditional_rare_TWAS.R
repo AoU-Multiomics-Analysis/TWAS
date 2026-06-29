@@ -34,11 +34,11 @@ option_list <- list(
     optparse::make_option(c("--SummaryStats"), type = "character", default = NULL,
                           help = "Path to bgzipped, tabix-indexed GWAS summary statistics."),
     optparse::make_option(c("--SusieRes"), type = "character", default = NULL,
-                          help = "Path to SuSiE fine-mapping results with a rare indicator column."),
+                          help = "Path to SuSiE fine-mapping results with a rare indicator column or gvs_max_af."),
     optparse::make_option(c("--OutputPrefix"), type = "character", default = NULL,
                           help = "Output prefix."),
     optparse::make_option(c("--RareColumn"), type = "character", default = "rare",
-                          help = "Column in SusieRes marking rare variants. Default: rare")
+                          help = "Column in SusieRes marking rare variants. If missing, infer from gvs_max_af < 0.01. Default: rare")
 )
 
 opt <- optparse::parse_args(optparse::OptionParser(option_list = option_list))
@@ -56,9 +56,7 @@ susie_dat <- fread(FineMappingRes) %>%
     mutate(chromosome = str_remove_all(chromosome, "chr")) %>%
     mutate(chromosome = paste0("chr", chromosome))
 
-if (!RareColumn %in% colnames(susie_dat)) {
-    stop(paste0("Fine-mapping results are missing rare column: ", RareColumn), call. = FALSE)
-}
+susie_dat <- ensure_rare_column(susie_dat, rare_col = RareColumn)
 
 message("Loading LD matrix")
 LD <- readRDS(MatrixLD)
