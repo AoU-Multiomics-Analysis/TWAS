@@ -124,6 +124,30 @@ parse_rare_indicator <- function(x) {
     x_clean %in% true_values
 }
 
+ensure_rare_column <- function(variant_df, rare_col = "rare", af_col = "gvs_max_af", af_threshold = 0.01) {
+    if (rare_col %in% colnames(variant_df)) {
+        return(variant_df)
+    }
+
+    if (!af_col %in% colnames(variant_df)) {
+        stop(
+            paste0(
+                "Missing rare indicator column: ", rare_col,
+                ". Could not infer it because ", af_col, " is also missing."
+            )
+        )
+    }
+
+    max_af <- suppressWarnings(as.numeric(variant_df[[af_col]]))
+    if (any(is.na(max_af))) {
+        stop(paste0("Could not infer rare status because ", af_col, " contains missing or non-numeric values."))
+    }
+
+    message(paste0("Rare column ", rare_col, " not found; defining it as ", af_col, " < ", af_threshold))
+    variant_df[[rare_col]] <- max_af < af_threshold
+    variant_df
+}
+
 is_single_ld_matrix <- function(LD) {
     is.matrix(LD) || inherits(LD, "Matrix")
 }
@@ -192,9 +216,7 @@ empty_two_predictor_twas_row <- function(gene_id, gwas_name = NA_character_, sta
 }
 
 calculate_two_predictor_TWAS <- function(variant_df, LD_matrix, rare_col = "rare") {
-    if (!rare_col %in% colnames(variant_df)) {
-        stop(paste0("Missing rare indicator column: ", rare_col))
-    }
+    variant_df <- ensure_rare_column(variant_df, rare_col = rare_col)
 
     variant_df <- variant_df %>%
         mutate(
