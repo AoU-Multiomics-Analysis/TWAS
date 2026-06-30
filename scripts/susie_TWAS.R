@@ -210,7 +210,7 @@ filter_susie_genes <- function(susie_dat, gene_filter_path = NULL, chosen_label 
         return(susie_dat)
     }
 
-    message("Loading gene filter")
+    message(paste0("Loading gene filter: ", gene_filter_path))
     gene_filter <- fread(gene_filter_path)
     required_columns <- c("Gene", "Coloc")
     missing_columns <- setdiff(required_columns, colnames(gene_filter))
@@ -235,20 +235,64 @@ filter_susie_genes <- function(susie_dat, gene_filter_path = NULL, chosen_label 
         mutate(.coloc_keep = parse_filter_logical(Coloc, "Coloc")) %>%
         filter(.coloc_keep)
 
+    message(
+        paste0(
+            "After Coloc filter: ",
+            nrow(gene_filter),
+            " rows and ",
+            dplyr::n_distinct(strip_gene_version(gene_filter$Gene)),
+            " unique genes"
+        )
+    )
+
+    if ("chosen_label" %in% colnames(gene_filter)) {
+        message(
+            paste0(
+                "Gene filter includes ",
+                dplyr::n_distinct(gene_filter$chosen_label),
+                " chosen_label values after Coloc filtering"
+            )
+        )
+    }
+
     if (!is_empty_option(chosen_label)) {
         if (!"chosen_label" %in% colnames(gene_filter)) {
             stop("Gene filter is missing required column for --ChosenLabel: chosen_label")
         }
+        chosen_label_clean <- trimws(as.character(chosen_label))
+        message(paste0("Received ChosenLabel option: '", chosen_label_clean, "'"))
         gene_filter <- gene_filter %>%
-            filter(.data$chosen_label == .env$chosen_label)
+            filter(trimws(as.character(.data$chosen_label)) == .env$chosen_label_clean)
+        message(
+            paste0(
+                "After ChosenLabel filter: ",
+                nrow(gene_filter),
+                " rows and ",
+                dplyr::n_distinct(strip_gene_version(gene_filter$Gene)),
+                " unique genes"
+            )
+        )
+    } else if ("chosen_label" %in% colnames(gene_filter)) {
+        message("No --ChosenLabel provided; keeping all chosen_label values")
     }
 
     if (!is_empty_option(qtl_type)) {
         if (!"type" %in% colnames(gene_filter)) {
             stop("Gene filter is missing required column for --QTLType: type")
         }
+        qtl_type_clean <- trimws(as.character(qtl_type))
+        message(paste0("Received QTLType option: '", qtl_type_clean, "'"))
         gene_filter <- gene_filter %>%
-            filter(.data$type == .env$qtl_type)
+            filter(trimws(as.character(.data$type)) == .env$qtl_type_clean)
+        message(
+            paste0(
+                "After QTLType filter: ",
+                nrow(gene_filter),
+                " rows and ",
+                dplyr::n_distinct(strip_gene_version(gene_filter$Gene)),
+                " unique genes"
+            )
+        )
     }
 
     keep_genes <- gene_filter %>%
