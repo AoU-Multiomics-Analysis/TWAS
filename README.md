@@ -39,8 +39,8 @@ Computes the linkage disequilibrium (LD) matrix for the variants associated with
 
 **Inputs:**
 - `--DoseMatrix` – Path to a tab-separated dosage matrix (columns: `CHROM`, `POS`, `REF`, `ALT`, followed by per-sample dosages).
-- `--PhenotypeID` – Gene ID whose fine-mapped variants should be used.
-- `--VariantList` – Path to a file listing variants with at least a `phenotype` column and a `variant` column (output from fine-mapping).
+- `--PhenotypeID` – Gene ID whose fine-mapped variants should be used. Trailing GENCODE version suffixes such as `.123` are ignored for matching.
+- `--VariantList` – Path to a file listing variants with at least a `phenotype` column and a `variant` column (output from fine-mapping). Trailing GENCODE version suffixes in `phenotype` are ignored for matching.
 
 **Outputs:**
 - `<PhenotypeID>.LD.rds` – An RDS file containing the LD correlation matrix for the gene's cis-variants.
@@ -137,8 +137,8 @@ Computes the LD matrix for a gene's cis-variants by running `compute_LD_TWAS.R`.
 | Name | Type | Description |
 |------|------|-------------|
 | `DoseMatrix` | File | Tab-separated genotype dosage matrix |
-| `VariantList` | File | File listing variants to include, with `phenotype` and `variant` columns |
-| `PhenotypeID` | String | Gene ID for which to compute the LD matrix |
+| `VariantList` | File | File listing variants to include, with `phenotype` and `variant` columns; trailing GENCODE version suffixes in `phenotype` are ignored for matching |
+| `PhenotypeID` | String | Gene ID for which to compute the LD matrix; trailing GENCODE version suffixes are ignored for matching |
 | `Memory` | Int | Memory in GB for the runtime |
 | `NumPrempt` | Int | Number of preemptible retries |
 

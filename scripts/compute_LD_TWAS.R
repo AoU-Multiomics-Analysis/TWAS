@@ -2,7 +2,6 @@ library(tidyverse)
 library(data.table)
 library(arrow)
 library(bedr)
-library(Rfast)
 library(optparse)
 
 compute_LD <- function(X) {
@@ -33,6 +32,15 @@ compute_LD <- function(X) {
 
 }
 
+has_gene_version <- function(gene_id) {
+  grepl("[.][0-9]+$", as.character(gene_id))
+}
+
+strip_gene_version <- function(gene_id) {
+  gene_id <- as.character(gene_id)
+  ifelse(has_gene_version(gene_id), sub("[.][0-9]+$", "", gene_id), gene_id)
+}
+
 
 ########### PARSE COMMAND LINE ARGUMENTS ########
 option_list <- list(
@@ -49,16 +57,42 @@ option_list <- list(
 opt <- optparse::parse_args(optparse::OptionParser(option_list=option_list))
 DosePath <- opt$DoseMatrix
 VariantListPath <- opt$VariantList
-GeneID <- opt$PhenotypeID
+PhenotypeID <- opt$PhenotypeID
+if (has_gene_version(PhenotypeID)) {
+  message(paste0("Detected gene version suffix in PhenotypeID: ", PhenotypeID))
+} else {
+  message(paste0("No gene version suffix detected in PhenotypeID: ", PhenotypeID))
+}
+GeneID <- strip_gene_version(PhenotypeID)
 OutFileName <- paste0(opt$PhenotypeID,'.LD.rds')
 
 
 ###### LOAD SUSIE DATA #########
-VariantList <- fread(VariantListPath) %>%
-        filter(phenotype == GeneID ) %>%  
+VariantListDat <- fread(VariantListPath)
+variant_list_version_count <- sum(has_gene_version(VariantListDat$phenotype), na.rm = TRUE)
+if (variant_list_version_count > 0) {
+  message(
+    paste0(
+      "Detected gene version suffixes in ",
+      variant_list_version_count,
+      " VariantList phenotype rows; stripping for matching"
+    )
+  )
+} else {
+  message("No gene version suffixes detected in VariantList phenotype column")
+}
+
+VariantList <- VariantListDat %>%
+        mutate(phenotype = strip_gene_version(phenotype)) %>%
+        filter(phenotype == GeneID ) %>%
         select(variant) %>% 
         mutate(variant = str_replace(variant,'chrchr','chr')) %>% 
         pull(variant)
+
+message(paste0("Matched ", length(VariantList), " variants for PhenotypeID after version stripping: ", GeneID))
+if (length(VariantList) == 0) {
+  stop(paste0("No variants found for PhenotypeID after version stripping: ", GeneID))
+}
 
 
 ########## BEGIN LD CALCULATION ########
