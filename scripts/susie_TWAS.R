@@ -200,6 +200,13 @@ strip_gene_version <- function(gene_id) {
 
 filter_susie_genes <- function(susie_dat, gene_filter_path = NULL, chosen_label = NULL, qtl_type = NULL) {
     if (is_empty_option(gene_filter_path)) {
+        message(
+            paste0(
+                "No gene filter provided; keeping ",
+                dplyr::n_distinct(susie_dat$molecular_trait_id),
+                " genes in SuSiE data"
+            )
+        )
         return(susie_dat)
     }
 
@@ -215,6 +222,14 @@ filter_susie_genes <- function(susie_dat, gene_filter_path = NULL, chosen_label 
             )
         )
     }
+
+    input_filter_genes <- gene_filter %>%
+        mutate(Gene = as.character(Gene)) %>%
+        filter(!is.na(Gene), Gene != "") %>%
+        mutate(.gene_match_id = strip_gene_version(Gene)) %>%
+        filter(!is.na(.gene_match_id), .gene_match_id != "") %>%
+        distinct(.gene_match_id) %>%
+        nrow()
 
     gene_filter <- gene_filter %>%
         mutate(.coloc_keep = parse_filter_logical(Coloc, "Coloc")) %>%
@@ -248,6 +263,16 @@ filter_susie_genes <- function(susie_dat, gene_filter_path = NULL, chosen_label 
         stop("No genes remain after applying gene filter.")
     }
 
+    message(
+        paste0(
+            "Gene filter criteria retained ",
+            length(keep_gene_match_ids),
+            " of ",
+            input_filter_genes,
+            " unique genes in the filter file"
+        )
+    )
+
     output <- susie_dat %>%
         mutate(.gene_match_id = strip_gene_version(molecular_trait_id)) %>%
         filter(.gene_match_id %in% keep_gene_match_ids) %>%
@@ -259,9 +284,11 @@ filter_susie_genes <- function(susie_dat, gene_filter_path = NULL, chosen_label 
 
     message(
         paste0(
-            "Gene filter retained ",
+            "Gene filter matched ",
             dplyr::n_distinct(output$molecular_trait_id),
-            " genes in SuSiE data"
+            " genes and ",
+            nrow(output),
+            " variants in SuSiE data"
         )
     )
     output

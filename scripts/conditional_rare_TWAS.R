@@ -85,4 +85,18 @@ ResTWAS <- susie_dat %>%
     group_modify(~TWAS_two_predictor(SummaryStats, ., LD, rare_col = RareColumn)) %>%
     ungroup()
 
+output_twas_genes <- dplyr::n_distinct(ResTWAS$gene)
+output_twas_rows <- nrow(ResTWAS)
+
 ResTWAS %>% write_tsv(OutFileName)
+
+message(
+    paste0(
+        "Wrote output TWAS file with ",
+        output_twas_genes,
+        " genes and ",
+        output_twas_rows,
+        " rows: ",
+        OutFileName
+    )
+)
