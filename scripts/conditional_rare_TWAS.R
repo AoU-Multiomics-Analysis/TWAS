@@ -40,7 +40,7 @@ option_list <- list(
     optparse::make_option(c("--RareColumn"), type = "character", default = "rare",
                           help = "Column in SusieRes marking rare variants. If missing, infer from gvs_max_af < 0.01. Default: rare"),
     optparse::make_option(c("--GeneFilter"), type = "character", default = NULL,
-                          help = "Optional path to gene filter TSV. Always filters Coloc == TRUE when provided. Trailing GENCODE version suffixes are ignored for gene matching."),
+                          help = "Optional path to gene filter TSV. Always filters Coloc == TRUE when provided. Embedded Ensembl gene IDs are extracted and trailing GENCODE version suffixes are ignored for gene matching."),
     optparse::make_option(c("--ChosenLabel"), type = "character", default = NULL,
                           help = "Optional chosen_label value to filter GeneFilter."),
     optparse::make_option(c("--QTLType"), type = "character", default = NULL,
@@ -63,7 +63,8 @@ message("Loading fine mapping")
 susie_dat <- fread(FineMappingRes) %>%
     mutate(variant = str_replace(variant, "chrchr", "chr")) %>%
     mutate(chromosome = str_remove_all(chromosome, "chr")) %>%
-    mutate(chromosome = paste0("chr", chromosome))
+    mutate(chromosome = paste0("chr", chromosome)) %>%
+    standardize_susie_gene_ids()
 
 susie_dat <- ensure_rare_column(susie_dat, rare_col = RareColumn)
 susie_dat <- filter_susie_genes(
@@ -74,7 +75,8 @@ susie_dat <- filter_susie_genes(
 )
 
 message("Loading LD matrix")
-LD <- readRDS(MatrixLD)
+LD <- readRDS(MatrixLD) %>%
+    standardize_ld_gene_ids()
 gene_ids <- genes_with_ld(LD, susie_dat)
 
 message("Computing two-predictor TWAS statistics")

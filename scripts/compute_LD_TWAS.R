@@ -36,9 +36,26 @@ has_gene_version <- function(gene_id) {
   grepl("[.][0-9]+$", as.character(gene_id))
 }
 
-strip_gene_version <- function(gene_id) {
+extract_ensembl_gene_id <- function(gene_id) {
   gene_id <- as.character(gene_id)
-  ifelse(has_gene_version(gene_id), sub("[.][0-9]+$", "", gene_id), gene_id)
+  ensembl_pattern <- "ENS[A-Z]*G[0-9]+([.][0-9]+)?"
+  matches <- stringr::str_extract_all(gene_id, ensembl_pattern)
+
+  extracted <- vapply(seq_along(gene_id), function(i) {
+    if (is.na(gene_id[i])) {
+      return(NA_character_)
+    }
+    if (length(matches[[i]]) > 0 && !all(is.na(matches[[i]]))) {
+      return(tail(stats::na.omit(matches[[i]]), 1))
+    }
+    gene_id[i]
+  }, character(1))
+
+  extracted
+}
+
+strip_gene_version <- function(gene_id) {
+  sub("[.][0-9]+$", "", extract_ensembl_gene_id(gene_id))
 }
 
 
@@ -64,22 +81,29 @@ if (has_gene_version(PhenotypeID)) {
   message(paste0("No gene version suffix detected in PhenotypeID: ", PhenotypeID))
 }
 GeneID <- strip_gene_version(PhenotypeID)
+if (!is.na(GeneID) && PhenotypeID != GeneID) {
+  message(paste0("Standardized PhenotypeID for matching: ", PhenotypeID, " -> ", GeneID))
+}
 OutFileName <- paste0(opt$PhenotypeID,'.LD.rds')
 
 
 ###### LOAD SUSIE DATA #########
 VariantListDat <- fread(VariantListPath)
-variant_list_version_count <- sum(has_gene_version(VariantListDat$phenotype), na.rm = TRUE)
-if (variant_list_version_count > 0) {
+variant_list_standardized_count <- sum(
+  !is.na(VariantListDat$phenotype) &
+    strip_gene_version(VariantListDat$phenotype) != as.character(VariantListDat$phenotype),
+  na.rm = TRUE
+)
+if (variant_list_standardized_count > 0) {
   message(
     paste0(
-      "Detected gene version suffixes in ",
-      variant_list_version_count,
-      " VariantList phenotype rows; stripping for matching"
+      "Standardized ",
+      variant_list_standardized_count,
+      " VariantList phenotype rows to Ensembl gene IDs for matching"
     )
   )
 } else {
-  message("No gene version suffixes detected in VariantList phenotype column")
+  message("No VariantList phenotype rows required gene ID standardization")
 }
 
 VariantList <- VariantListDat %>%

@@ -39,8 +39,8 @@ Computes the linkage disequilibrium (LD) matrix for the variants associated with
 
 **Inputs:**
 - `--DoseMatrix` – Path to a tab-separated dosage matrix (columns: `CHROM`, `POS`, `REF`, `ALT`, followed by per-sample dosages).
-- `--PhenotypeID` – Gene ID whose fine-mapped variants should be used. Trailing GENCODE version suffixes such as `.123` are ignored for matching.
-- `--VariantList` – Path to a file listing variants with at least a `phenotype` column and a `variant` column (output from fine-mapping). Trailing GENCODE version suffixes in `phenotype` are ignored for matching.
+- `--PhenotypeID` – Gene ID whose fine-mapped variants should be used. Embedded Ensembl gene IDs are extracted from values such as `chr10:100262063:100267571:clu_12500_-:ENSG00000095485.18` or `A0JNW5_ENSG00000111647.13`, and trailing GENCODE version suffixes such as `.123` are ignored for matching.
+- `--VariantList` – Path to a file listing variants with at least a `phenotype` column and a `variant` column (output from fine-mapping). Embedded Ensembl gene IDs and trailing GENCODE version suffixes in `phenotype` are ignored for matching.
 
 **Outputs:**
 - `<PhenotypeID>.LD.rds` – An RDS file containing the LD correlation matrix for the gene's cis-variants.
@@ -56,7 +56,7 @@ Performs the core TWAS analysis for a gene. For each provided set of GWAS summar
 - `--SusieRes` – Path to a tab-separated file of SuSiE fine-mapping results (must include columns `molecular_trait_id`, `variant`, `posterior_mean`, `chromosome`, `position`, `ref`, `alt`, `pip`, `cs_id`).
 - `--SummaryStats` – Path to a bgzipped, tabix-indexed GWAS summary statistics file (columns: `CHR`, `POS`, `REF`, `ALT`, `BETA`, `SE`, `Pvalue`).
 - `--OutputPrefix` – Prefix for the output file name (typically the GWAS name).
-- `--GeneFilter` – Optional TSV of genes to run. When provided, the script always keeps rows where `Coloc == TRUE`, optionally applies `chosen_label` and `type` filters, then restricts TWAS to genes in the `Gene` column. Gene matching strips trailing GENCODE version suffixes such as `.123`.
+- `--GeneFilter` – Optional TSV of genes to run. When provided, the script always keeps rows where `Coloc == TRUE`, optionally applies `chosen_label` and `type` filters, then restricts TWAS to genes in the `Gene` column. Gene matching extracts embedded Ensembl gene IDs from molecular trait IDs such as `chr10:100262063:100267571:clu_12500_-:ENSG00000095485.18` or `A0JNW5_ENSG00000111647.13`, then strips trailing GENCODE version suffixes such as `.123`.
 - `--ChosenLabel` – Optional trait label value to apply to the `chosen_label` column in `--GeneFilter`.
 - `--QTLType` – Optional `type` value to apply to `--GeneFilter`.
 
@@ -75,7 +75,7 @@ Computes a two-predictor TWAS follow-up test by splitting each gene's full SuSiE
 - `--SummaryStats` – Path to a bgzipped, tabix-indexed GWAS summary statistics file.
 - `--OutputPrefix` – Prefix for the output file name.
 - `--RareColumn` – Optional name of the rare indicator column. Defaults to `rare`; if missing, the script filters missing/non-numeric `gvs_max_af` values and infers rare status from `gvs_max_af < 0.01`.
-- `--GeneFilter` – Optional TSV of genes to run. When provided, the script always keeps rows where `Coloc == TRUE`, optionally applies `chosen_label` and `type` filters, then restricts TWAS to genes in the `Gene` column. Gene matching strips trailing GENCODE version suffixes such as `.123`.
+- `--GeneFilter` – Optional TSV of genes to run. When provided, the script always keeps rows where `Coloc == TRUE`, optionally applies `chosen_label` and `type` filters, then restricts TWAS to genes in the `Gene` column. Gene matching extracts embedded Ensembl gene IDs from molecular trait IDs such as `chr10:100262063:100267571:clu_12500_-:ENSG00000095485.18` or `A0JNW5_ENSG00000111647.13`, then strips trailing GENCODE version suffixes such as `.123`.
 - `--ChosenLabel` – Optional trait label value to apply to the `chosen_label` column in `--GeneFilter`.
 - `--QTLType` – Optional `type` value to apply to `--GeneFilter`.
 
@@ -137,8 +137,8 @@ Computes the LD matrix for a gene's cis-variants by running `compute_LD_TWAS.R`.
 | Name | Type | Description |
 |------|------|-------------|
 | `DoseMatrix` | File | Tab-separated genotype dosage matrix |
-| `VariantList` | File | File listing variants to include, with `phenotype` and `variant` columns; trailing GENCODE version suffixes in `phenotype` are ignored for matching |
-| `PhenotypeID` | String | Gene ID for which to compute the LD matrix; trailing GENCODE version suffixes are ignored for matching |
+| `VariantList` | File | File listing variants to include, with `phenotype` and `variant` columns; embedded Ensembl gene IDs are extracted and trailing GENCODE version suffixes in `phenotype` are ignored for matching |
+| `PhenotypeID` | String | Gene ID for which to compute the LD matrix; embedded Ensembl gene IDs are extracted and trailing GENCODE version suffixes are ignored for matching |
 | `Memory` | Int | Memory in GB for the runtime |
 | `NumPrempt` | Int | Number of preemptible retries |
 
@@ -165,7 +165,7 @@ Runs the TWAS analysis for a gene against a single set of GWAS summary statistic
 | `SumStatsIndex` | File | Tabix index (`.tbi`) for the summary statistics file |
 | `FineMapping` | File | SuSiE fine-mapping results file |
 | `NameGWAS` | String | Name/prefix for the GWAS (used in output file naming) |
-| `GeneFilter` | File? | Optional gene filter TSV. When provided, keeps `Coloc == TRUE`, optionally filters `chosen_label` and `type`, and restricts to `Gene` values after stripping trailing GENCODE version suffixes |
+| `GeneFilter` | File? | Optional gene filter TSV. When provided, keeps `Coloc == TRUE`, optionally filters `chosen_label` and `type`, and restricts to `Gene` values after extracting embedded Ensembl gene IDs and stripping trailing GENCODE version suffixes |
 | `ChosenLabel` | String | Optional trait label value for the `chosen_label` column in `GeneFilter`; blank means no chosen-label filter |
 | `QTLType` | String | Optional `type` value for `GeneFilter`; blank means no QTL-type filter |
 | `Memory` | Int | Memory in GB for the runtime |
@@ -195,7 +195,7 @@ Runs the conditional rare/common two-predictor TWAS analysis by executing `condi
 | `FineMapping` | File | SuSiE fine-mapping results file containing a rare indicator column or `gvs_max_af` |
 | `NameGWAS` | String | Name/prefix for the GWAS (used in output file naming) |
 | `RareColumn` | String | Rare indicator column in `FineMapping`; defaults to `rare` and falls back to `gvs_max_af < 0.01` when absent, after filtering missing/non-numeric `gvs_max_af` values |
-| `GeneFilter` | File? | Optional gene filter TSV. When provided, keeps `Coloc == TRUE`, optionally filters `chosen_label` and `type`, and restricts to `Gene` values after stripping trailing GENCODE version suffixes |
+| `GeneFilter` | File? | Optional gene filter TSV. When provided, keeps `Coloc == TRUE`, optionally filters `chosen_label` and `type`, and restricts to `Gene` values after extracting embedded Ensembl gene IDs and stripping trailing GENCODE version suffixes |
 | `ChosenLabel` | String | Optional trait label value for the `chosen_label` column in `GeneFilter`; blank means no chosen-label filter |
 | `QTLType` | String | Optional `type` value for `GeneFilter`; blank means no QTL-type filter |
 | `Memory` | Int | Memory in GB for the runtime |

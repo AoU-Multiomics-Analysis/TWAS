@@ -194,8 +194,87 @@ parse_filter_logical <- function(x, column_name) {
     !is.na(x_clean) & x_clean %in% true_values
 }
 
+extract_ensembl_gene_id <- function(gene_id) {
+    gene_id <- as.character(gene_id)
+    ensembl_pattern <- "ENS[A-Z]*G[0-9]+(?:\\.[0-9]+)?"
+    matches <- stringr::str_extract_all(gene_id, ensembl_pattern)
+
+    extracted <- vapply(seq_along(gene_id), function(i) {
+        if (is.na(gene_id[i])) {
+            return(NA_character_)
+        }
+        if (length(matches[[i]]) > 0 && !all(is.na(matches[[i]]))) {
+            return(tail(stats::na.omit(matches[[i]]), 1))
+        }
+        gene_id[i]
+    }, character(1))
+
+    extracted
+}
+
 strip_gene_version <- function(gene_id) {
-    sub("\\.[0-9]+$", "", as.character(gene_id))
+    sub("\\.[0-9]+$", "", extract_ensembl_gene_id(gene_id))
+}
+
+standardize_susie_gene_ids <- function(susie_dat, id_col = "molecular_trait_id") {
+    if (!id_col %in% colnames(susie_dat)) {
+        stop(paste0("Missing required SuSiE gene ID column: ", id_col))
+    }
+
+    original_ids <- as.character(susie_dat[[id_col]])
+    cleaned_ids <- strip_gene_version(original_ids)
+    changed <- !is.na(original_ids) & !is.na(cleaned_ids) & original_ids != cleaned_ids
+
+    if (any(changed)) {
+        example_pairs <- unique(paste0(original_ids[changed], " -> ", cleaned_ids[changed]))
+        message(
+            paste0(
+                "Standardized ",
+                dplyr::n_distinct(original_ids[changed]),
+                " SuSiE molecular trait IDs to Ensembl gene IDs. Examples: ",
+                paste(utils::head(example_pairs, 3), collapse = "; ")
+            )
+        )
+    }
+
+    susie_dat[[id_col]] <- cleaned_ids
+    susie_dat
+}
+
+standardize_ld_gene_ids <- function(LD) {
+    if (is_single_ld_matrix(LD) || is.null(names(LD))) {
+        return(LD)
+    }
+
+    original_names <- names(LD)
+    cleaned_names <- strip_gene_version(original_names)
+    changed <- !is.na(original_names) & !is.na(cleaned_names) & original_names != cleaned_names
+
+    if (anyDuplicated(cleaned_names)) {
+        duplicated_names <- unique(cleaned_names[duplicated(cleaned_names)])
+        stop(
+            paste0(
+                "Cleaning LD matrix names created duplicate gene IDs: ",
+                paste(utils::head(duplicated_names, 10), collapse = ", "),
+                ". Provide a single gene-level LD matrix per cleaned gene ID."
+            )
+        )
+    }
+
+    if (any(changed)) {
+        example_pairs <- unique(paste0(original_names[changed], " -> ", cleaned_names[changed]))
+        message(
+            paste0(
+                "Standardized ",
+                sum(changed),
+                " LD matrix names to Ensembl gene IDs. Examples: ",
+                paste(utils::head(example_pairs, 3), collapse = "; ")
+            )
+        )
+    }
+
+    names(LD) <- cleaned_names
+    LD
 }
 
 filter_susie_genes <- function(susie_dat, gene_filter_path = NULL, chosen_label = NULL, qtl_type = NULL) {
@@ -693,7 +772,7 @@ run_susie_TWAS <- function() {
         optparse::make_option(c("--OutputPrefix"), type="character", default=NULL,
                             help="Path to finemapping data for a gene", metavar = "type"),
         optparse::make_option(c("--GeneFilter"), type="character", default=NULL,
-                            help="Optional path to gene filter TSV. Always filters Coloc == TRUE when provided. Trailing GENCODE version suffixes are ignored for gene matching.", metavar = "type"),
+                            help="Optional path to gene filter TSV. Always filters Coloc == TRUE when provided. Embedded Ensembl gene IDs are extracted and trailing GENCODE version suffixes are ignored for gene matching.", metavar = "type"),
         optparse::make_option(c("--ChosenLabel"), type="character", default=NULL,
                             help="Optional chosen_label value to filter GeneFilter.", metavar = "type"),
         optparse::make_option(c("--QTLType"), type="character", default=NULL,
@@ -717,7 +796,8 @@ run_susie_TWAS <- function() {
     susie_dat <- fread(FineMappingRes) %>% 
                     mutate(variant = str_replace(variant,'chrchr','chr')) %>% 
                     mutate(chromosome = str_remove_all(chromosome,'chr')) %>% 
-                    mutate(chromosome = paste0('chr',chromosome)) 
+                    mutate(chromosome = paste0('chr',chromosome)) %>%
+                    standardize_susie_gene_ids()
     susie_dat <- filter_susie_genes(
         susie_dat,
         gene_filter_path = GeneFilter,
@@ -729,7 +809,8 @@ run_susie_TWAS <- function() {
 
     # Loads LD matrix
     message('Loading LD matrix')
-    LD <- readRDS(MatrixLD)
+    LD <- readRDS(MatrixLD) %>%
+        standardize_ld_gene_ids()
 
     ############# COMPUTE TWAS Z SCORE ########################
     # computes TWAS Z statistic 
