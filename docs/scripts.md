@@ -1,0 +1,132 @@
+# Script Reference
+
+This document describes the R scripts in `scripts/`. The WDL workflows call these scripts inside the pipeline Docker image, but they can also be run directly when the required dependencies and input files are available.
+
+## `CreatePhenoFile.R`
+
+Extracts expression data for a single gene from a BED-format expression matrix and prepares files for heritability estimation.
+
+### Inputs
+
+- `--BedFile`: BED-format gene expression file with columns `chrom`, `start`, `end`, `gene_id`, followed by per-sample expression values.
+- `--PhenotypeID`: Gene ID to extract. This must match a `gene_id` value in the BED file.
+
+### Outputs
+
+- `gene_region.tsv`: Three-column file with `chrom`, `start`, and `end`, defining the +/- 1 Mb cis-window around the gene.
+- `pheno.txt`: Phenotype file with `FID`, `IID`, and expression value, formatted for PLINK/GCTA.
+
+## `compute_LD_TWAS.R`
+
+Computes an LD correlation matrix for the fine-mapped variants associated with one gene.
+
+### Inputs
+
+- `--DoseMatrix`: Tab-separated genotype dosage matrix. Required columns are `CHROM`, `POS`, `REF`, and `ALT`, followed by per-sample dosages.
+- `--PhenotypeID`: Gene or molecular trait ID whose fine-mapped variants should be used.
+- `--VariantList`: File with at least `phenotype` and `variant` columns.
+
+### Gene ID Matching
+
+`--PhenotypeID` and `VariantList$phenotype` are normalized before matching. The script extracts embedded Ensembl gene IDs and strips trailing GENCODE versions.
+
+Examples:
+
+```text
+ENSG00000111647.13                                      -> ENSG00000111647
+chr10:100262063:100267571:clu_12500_-:ENSG00000095485.18 -> ENSG00000095485
+A0JNW5_ENSG00000111647.13                              -> ENSG00000111647
+```
+
+### Output
+
+- `<PhenotypeID>.LD.rds`: RDS file containing the LD matrix for the gene's fine-mapped variants.
+
+## `susie_TWAS.R`
+
+Runs the standard SuSiE-weighted TWAS analysis.
+
+For each gene, the script extracts overlapping GWAS variants, aligns alleles, computes variant Z-scores as `BETA / SE`, and then calculates:
+
+```text
+s = t(w) %*% z
+var(s) = t(w) %*% LD %*% w
+z_TWAS = s / sqrt(var(s))
+```
+
+where `w` is the SuSiE posterior mean vector.
+
+### Inputs
+
+- `--LDMatrix`: RDS object containing either a named list of LD matrices or a single-gene LD matrix.
+- `--SusieRes`: Tab-separated SuSiE fine-mapping results. Required columns include `molecular_trait_id`, `variant`, `posterior_mean`, `chromosome`, `position`, `ref`, `alt`, `pip`, and `cs_id`.
+- `--SummaryStats`: Bgzipped, tabix-indexed GWAS summary statistics with `CHR`, `POS`, `REF`, `ALT`, `BETA`, `SE`, and `Pvalue`.
+- `--OutputPrefix`: Prefix for the output file.
+- `--GeneFilter`: Optional TSV of genes to run. When provided, the script always keeps `Coloc == TRUE`, optionally filters `chosen_label` and `type`, and restricts TWAS to genes in the `Gene` column.
+- `--ChosenLabel`: Optional value to match against `GeneFilter$chosen_label`.
+- `--QTLType`: Optional value to match against `GeneFilter$type`.
+
+### Gene ID Matching
+
+The script normalizes `molecular_trait_id`, LD list names, and gene-filter `Gene` values by extracting embedded Ensembl IDs and stripping GENCODE versions. This supports eQTL IDs, splicing IDs, and pQTL IDs.
+
+### Output
+
+- `<OutputPrefix>.TWAS.txt`: Tab-separated TWAS output with `zscore`, `pvalue`, `stat`, `gene`, and `GWAS`.
+
+## `conditional_rare_TWAS.R`
+
+Runs the two-predictor rare/common TWAS follow-up. It partitions each gene's SuSiE weights into common and rare components, then reports full, common-only, rare-only, joint, and rare-conditional statistics.
+
+The statistical details are described in [Conditional Rare TWAS](conditional-rare-twas.md).
+
+### Inputs
+
+- `--LDMatrix`: RDS object containing either a named list of LD matrices or a single-gene LD matrix.
+- `--SusieRes`: Tab-separated SuSiE fine-mapping results. It should include the columns required by `susie_TWAS.R`, plus either a rare indicator column or `gvs_max_af`.
+- `--SummaryStats`: Bgzipped, tabix-indexed GWAS summary statistics.
+- `--OutputPrefix`: Prefix for the output file.
+- `--RareColumn`: Rare indicator column. Defaults to `rare`.
+- `--GeneFilter`: Optional TSV of genes to run. When provided, the script always keeps `Coloc == TRUE`, optionally filters `chosen_label` and `type`, and restricts TWAS to genes in the `Gene` column.
+- `--ChosenLabel`: Optional value to match against `GeneFilter$chosen_label`.
+- `--QTLType`: Optional value to match against `GeneFilter$type`.
+
+### Rare Annotation
+
+If `--RareColumn` is present, it is parsed as a rare/common indicator. Supported true values include `TRUE`, `1`, `yes`, and `rare`; supported false values include `FALSE`, `0`, `no`, and `common`.
+
+If `--RareColumn` is absent, the script falls back to:
+
+```text
+rare = gvs_max_af < 0.01
+```
+
+Before doing this fallback, variants with missing or non-numeric `gvs_max_af` values are removed.
+
+### Output
+
+- `<OutputPrefix>.TWAS.two_predictor.txt`: Tab-separated output containing full, common, rare, joint, and rare-conditional TWAS statistics.
+
+Key output columns include:
+
+- `full_zscore`, `full_pvalue`: TWAS using all variants.
+- `common_zscore`, `common_pvalue`: TWAS using common variants only.
+- `rare_zscore`, `rare_pvalue`: TWAS using rare variants only.
+- `chisq_joint`, `p_joint`: 2-df joint test of common and rare predictors.
+- `z_rare_cond`, `p_rare_cond`: 1-df rare component test conditional on the common component.
+- `Vcc`, `Vrr`, `Vcr`, `Vcor`: covariance terms for the common and rare scores.
+- `n_variants`, `n_common`, `n_rare`: variant counts used for each gene.
+- `status`: calculation status for the gene.
+
+## `aggregate_TWAS.R`
+
+Aggregates multiple per-gene or per-trait TWAS result files into one merged TSV.
+
+### Inputs
+
+- `--FilePaths`: Plain-text file listing individual TWAS result files, one per line.
+- `--OutputPrefix`: Prefix for the merged output file.
+
+### Output
+
+- `<OutputPrefix>_TWAS.tsv`: Merged TWAS result file.
