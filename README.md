@@ -61,19 +61,25 @@ The main TWAS scripts expect:
 
 For conditional rare TWAS, fine-mapping results should include either a rare-variant indicator column, usually `rare`, or a `gvs_max_af` column. If the rare indicator is absent, the script defines rare variants as `gvs_max_af < 0.01` after filtering variants with missing or non-numeric `gvs_max_af` values.
 
-## Gene ID Handling
+## Gene And Molecular Trait ID Handling
 
-The TWAS and LD scripts normalize molecular trait IDs before matching across files. This is important for eQTL, sQTL, and pQTL inputs that encode gene IDs differently.
+The TWAS and LD scripts use two related ID normalizations:
+
+- Gene filtering extracts the embedded Ensembl gene ID and strips the GENCODE version.
+- TWAS grouping and LD matching preserve the molecular trait ID, but strip embedded Ensembl gene versions.
+
+This distinction matters for pQTL and splicing inputs, where multiple molecular traits can map to the same gene.
 
 Supported examples:
 
 ```text
-ENSG00000111647.13                                      -> ENSG00000111647
-chr10:100262063:100267571:clu_12500_-:ENSG00000095485.18 -> ENSG00000095485
-A0JNW5_ENSG00000111647.13                              -> ENSG00000111647
+Input ID                                                   Gene filter ID      LD/TWAS ID
+ENSG00000111647.13                                      -> ENSG00000111647    ENSG00000111647
+chr10:100262063:100267571:clu_12500_-:ENSG00000095485.18 -> ENSG00000095485    chr10:100262063:100267571:clu_12500_-:ENSG00000095485
+A0JNW5_ENSG00000111647.13                              -> ENSG00000111647    A0JNW5_ENSG00000111647
 ```
 
-This normalization extracts embedded Ensembl gene IDs and strips trailing GENCODE version suffixes before gene filtering, LD matching, and TWAS grouping.
+This lets a gene-level filter retain all matching molecular traits while avoiding LD-name collisions for multiple proteins or splice events from the same gene.
 
 ## Runtime
 

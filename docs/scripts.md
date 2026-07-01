@@ -26,16 +26,16 @@ Computes an LD correlation matrix for the fine-mapped variants associated with o
 - `--PhenotypeID`: Gene or molecular trait ID whose fine-mapped variants should be used.
 - `--VariantList`: File with at least `phenotype` and `variant` columns.
 
-### Gene ID Matching
+### Molecular Trait ID Matching
 
-`--PhenotypeID` and `VariantList$phenotype` are normalized before matching. The script extracts embedded Ensembl gene IDs and strips trailing GENCODE versions.
+`--PhenotypeID` and `VariantList$phenotype` are normalized before matching. The script preserves the molecular trait ID but strips embedded Ensembl gene versions.
 
 Examples:
 
 ```text
 ENSG00000111647.13                                      -> ENSG00000111647
-chr10:100262063:100267571:clu_12500_-:ENSG00000095485.18 -> ENSG00000095485
-A0JNW5_ENSG00000111647.13                              -> ENSG00000111647
+chr10:100262063:100267571:clu_12500_-:ENSG00000095485.18 -> chr10:100262063:100267571:clu_12500_-:ENSG00000095485
+A0JNW5_ENSG00000111647.13                              -> A0JNW5_ENSG00000111647
 ```
 
 ### Output
@@ -68,7 +68,12 @@ where `w` is the SuSiE posterior mean vector.
 
 ### Gene ID Matching
 
-The script normalizes `molecular_trait_id`, LD list names, and gene-filter `Gene` values by extracting embedded Ensembl IDs and stripping GENCODE versions. This supports eQTL IDs, splicing IDs, and pQTL IDs.
+The script uses two match IDs:
+
+- For `--GeneFilter`, it extracts the embedded Ensembl gene ID from `molecular_trait_id` and `Gene`, then strips GENCODE versions.
+- For LD lookup and TWAS grouping, it preserves the molecular trait ID and strips only embedded Ensembl gene versions.
+
+This supports eQTL IDs, splicing IDs, and pQTL IDs without collapsing multiple protein or splice traits from the same gene.
 
 ### Output
 

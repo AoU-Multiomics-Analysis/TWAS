@@ -38,8 +38,8 @@ Computes the LD matrix for the fine-mapped variants associated with one gene. Th
 | Name | Type | Description |
 |------|------|-------------|
 | `DoseMatrix` | File | Tab-separated genotype dosage matrix |
-| `VariantList` | File | File with `phenotype` and `variant` columns; embedded Ensembl gene IDs and trailing versions are ignored for matching |
-| `PhenotypeID` | String | Gene or molecular trait ID; embedded Ensembl gene IDs and trailing versions are ignored for matching |
+| `VariantList` | File | File with `phenotype` and `variant` columns; embedded Ensembl gene versions are stripped while preserving molecular trait IDs |
+| `PhenotypeID` | String | Gene or molecular trait ID; embedded Ensembl gene versions are stripped while preserving molecular trait IDs |
 | `Memory` | Int | Memory in GB |
 | `NumPrempt` | Int | Number of preemptible retries |
 

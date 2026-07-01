@@ -216,13 +216,22 @@ strip_gene_version <- function(gene_id) {
     sub("\\.[0-9]+$", "", extract_ensembl_gene_id(gene_id))
 }
 
+normalize_molecular_trait_id <- function(molecular_trait_id) {
+    molecular_trait_id <- as.character(molecular_trait_id)
+    stringr::str_replace_all(
+        molecular_trait_id,
+        "(ENS[A-Z]*G[0-9]+)\\.[0-9]+",
+        "\\1"
+    )
+}
+
 standardize_susie_gene_ids <- function(susie_dat, id_col = "molecular_trait_id") {
     if (!id_col %in% colnames(susie_dat)) {
         stop(paste0("Missing required SuSiE gene ID column: ", id_col))
     }
 
     original_ids <- as.character(susie_dat[[id_col]])
-    cleaned_ids <- strip_gene_version(original_ids)
+    cleaned_ids <- normalize_molecular_trait_id(original_ids)
     changed <- !is.na(original_ids) & !is.na(cleaned_ids) & original_ids != cleaned_ids
 
     if (any(changed)) {
@@ -231,7 +240,7 @@ standardize_susie_gene_ids <- function(susie_dat, id_col = "molecular_trait_id")
             paste0(
                 "Standardized ",
                 dplyr::n_distinct(original_ids[changed]),
-                " SuSiE molecular trait IDs to Ensembl gene IDs. Examples: ",
+                " SuSiE molecular trait IDs by stripping embedded Ensembl gene versions. Examples: ",
                 paste(utils::head(example_pairs, 3), collapse = "; ")
             )
         )
@@ -247,16 +256,16 @@ standardize_ld_gene_ids <- function(LD) {
     }
 
     original_names <- names(LD)
-    cleaned_names <- strip_gene_version(original_names)
+    cleaned_names <- normalize_molecular_trait_id(original_names)
     changed <- !is.na(original_names) & !is.na(cleaned_names) & original_names != cleaned_names
 
     if (anyDuplicated(cleaned_names)) {
         duplicated_names <- unique(cleaned_names[duplicated(cleaned_names)])
         stop(
             paste0(
-                "Cleaning LD matrix names created duplicate gene IDs: ",
+                "Cleaning LD matrix names created duplicate molecular trait IDs: ",
                 paste(utils::head(duplicated_names, 10), collapse = ", "),
-                ". Provide a single gene-level LD matrix per cleaned gene ID."
+                ". Provide a single LD matrix per cleaned molecular trait ID."
             )
         )
     }
@@ -267,7 +276,7 @@ standardize_ld_gene_ids <- function(LD) {
             paste0(
                 "Standardized ",
                 sum(changed),
-                " LD matrix names to Ensembl gene IDs. Examples: ",
+                " LD matrix names by stripping embedded Ensembl gene versions. Examples: ",
                 paste(utils::head(example_pairs, 3), collapse = "; ")
             )
         )
@@ -408,8 +417,10 @@ filter_susie_genes <- function(susie_dat, gene_filter_path = NULL, chosen_label 
     message(
         paste0(
             "Gene filter matched ",
+            dplyr::n_distinct(strip_gene_version(output$molecular_trait_id)),
+            " genes, ",
             dplyr::n_distinct(output$molecular_trait_id),
-            " genes and ",
+            " molecular traits, and ",
             nrow(output),
             " variants in SuSiE data"
         )
@@ -772,7 +783,7 @@ run_susie_TWAS <- function() {
         optparse::make_option(c("--OutputPrefix"), type="character", default=NULL,
                             help="Path to finemapping data for a gene", metavar = "type"),
         optparse::make_option(c("--GeneFilter"), type="character", default=NULL,
-                            help="Optional path to gene filter TSV. Always filters Coloc == TRUE when provided. Embedded Ensembl gene IDs are extracted and trailing GENCODE version suffixes are ignored for gene matching.", metavar = "type"),
+                            help="Optional path to gene filter TSV. Always filters Coloc == TRUE when provided. Embedded Ensembl gene IDs are extracted for gene filtering; molecular trait IDs are preserved for LD matching.", metavar = "type"),
         optparse::make_option(c("--ChosenLabel"), type="character", default=NULL,
                             help="Optional chosen_label value to filter GeneFilter.", metavar = "type"),
         optparse::make_option(c("--QTLType"), type="character", default=NULL,

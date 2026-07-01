@@ -58,6 +58,15 @@ strip_gene_version <- function(gene_id) {
   sub("[.][0-9]+$", "", extract_ensembl_gene_id(gene_id))
 }
 
+normalize_molecular_trait_id <- function(molecular_trait_id) {
+  molecular_trait_id <- as.character(molecular_trait_id)
+  stringr::str_replace_all(
+    molecular_trait_id,
+    "(ENS[A-Z]*G[0-9]+)[.][0-9]+",
+    "\\1"
+  )
+}
+
 
 ########### PARSE COMMAND LINE ARGUMENTS ########
 option_list <- list(
@@ -80,7 +89,7 @@ if (has_gene_version(PhenotypeID)) {
 } else {
   message(paste0("No gene version suffix detected in PhenotypeID: ", PhenotypeID))
 }
-GeneID <- strip_gene_version(PhenotypeID)
+GeneID <- normalize_molecular_trait_id(PhenotypeID)
 if (!is.na(GeneID) && PhenotypeID != GeneID) {
   message(paste0("Standardized PhenotypeID for matching: ", PhenotypeID, " -> ", GeneID))
 }
@@ -91,7 +100,7 @@ OutFileName <- paste0(opt$PhenotypeID,'.LD.rds')
 VariantListDat <- fread(VariantListPath)
 variant_list_standardized_count <- sum(
   !is.na(VariantListDat$phenotype) &
-    strip_gene_version(VariantListDat$phenotype) != as.character(VariantListDat$phenotype),
+    normalize_molecular_trait_id(VariantListDat$phenotype) != as.character(VariantListDat$phenotype),
   na.rm = TRUE
 )
 if (variant_list_standardized_count > 0) {
@@ -99,15 +108,15 @@ if (variant_list_standardized_count > 0) {
     paste0(
       "Standardized ",
       variant_list_standardized_count,
-      " VariantList phenotype rows to Ensembl gene IDs for matching"
+      " VariantList phenotype rows by stripping embedded Ensembl gene versions for matching"
     )
   )
 } else {
-  message("No VariantList phenotype rows required gene ID standardization")
+  message("No VariantList phenotype rows required molecular trait ID standardization")
 }
 
 VariantList <- VariantListDat %>%
-        mutate(phenotype = strip_gene_version(phenotype)) %>%
+        mutate(phenotype = normalize_molecular_trait_id(phenotype)) %>%
         filter(phenotype == GeneID ) %>%
         select(variant) %>% 
         mutate(variant = str_replace(variant,'chrchr','chr')) %>% 
