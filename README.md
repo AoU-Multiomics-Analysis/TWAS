@@ -66,6 +66,10 @@ For conditional rare TWAS, fine-mapping results should include either a rare-var
 ## Manifest Inputs
 
 The manifest workflow expects two tab-separated manifests with headers.
+Each non-empty row must have values for all required columns. Paths can be
+`gs://` Google Cloud Storage paths or local paths visible inside the task
+container. For `gs://` paths, the workflow copies files into the task working
+directory with `gsutil cp`.
 
 QTL manifest:
 
@@ -75,6 +79,12 @@ gs://bucket/path/eqtl.susie.tsv.gz	gs://bucket/path/eqtl.ld.rds	eQTL
 gs://bucket/path/pqtl.susie.tsv.gz	gs://bucket/path/pqtl.ld.rds	pQTL
 ```
 
+QTL columns:
+
+- `susie_path`: SuSiE fine-mapping result TSV or TSV.GZ. This file should contain the columns required by `susie_TWAS.R`, including `molecular_trait_id`, `variant`, `posterior_mean`, `chromosome`, `position`, `ref`, and `alt`.
+- `ld_matrix_path`: RDS LD matrix object matching the SuSiE molecular trait IDs in `susie_path`.
+- `qtl_type`: Label for this QTL dataset, such as `eQTL`, `sQTL`, or `pQTL`. When `GeneFilter` is provided, this value is passed to `--QTLType` and matched against the gene filter `type` column.
+
 GWAS manifest:
 
 ```text
@@ -83,7 +93,16 @@ gs://bucket/path/monocyte.tsv.gz	gs://bucket/path/monocyte.tsv.gz.tbi	monocyte c
 gs://bucket/path/leukocyte.tsv.gz	gs://bucket/path/leukocyte.tsv.gz.tbi	leukocyte quantity
 ```
 
-The manifest workflow expands all QTL rows against all GWAS rows. It runs with `AnalysisType = "conditional_rare"` by default and also supports `AnalysisType = "standard"`.
+GWAS columns:
+
+- `summary_stats_path`: Bgzipped, tabix-indexed GWAS summary statistics file.
+- `summary_stats_index_path`: Tabix index for `summary_stats_path`. The file is localized next to the summary statistics with the expected `.tbi` name.
+- `chosen_label`: Trait label for this GWAS. When `GeneFilter` is provided, this value is passed to `--ChosenLabel` and matched against the gene filter `chosen_label` column.
+
+The manifest workflow expands all QTL rows against all GWAS rows. For example,
+2 QTL rows and 3 GWAS rows create 6 TWAS runs. It runs with
+`AnalysisType = "conditional_rare"` by default and also supports
+`AnalysisType = "standard"`.
 
 ## Gene And Molecular Trait ID Handling
 

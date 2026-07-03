@@ -152,7 +152,17 @@ The QTL manifest must contain columns equivalent to:
 susie_path	ld_matrix_path	qtl_type
 ```
 
-Accepted aliases include `susie_file`, `fine_mapping_path`, or `susie_res` for `susie_path`; `ld_matrix`, `ld_path`, or `ld_file` for `ld_matrix_path`; and `type` or `label` for `qtl_type`.
+QTL manifest columns:
+
+| Canonical column | Accepted aliases | Description |
+|------|------|-------------|
+| `susie_path` | `susie_file`, `susie`, `finemapping`, `fine_mapping`, `fine_mapping_path`, `susie_res` | Path to a SuSiE fine-mapping result file |
+| `ld_matrix_path` | `ld_matrix`, `ld_path`, `ld_file`, `ldmatrix` | Path to the matching LD matrix RDS |
+| `qtl_type` | `qtltype`, `type`, `label` | QTL type label, such as `eQTL`, `sQTL`, or `pQTL` |
+
+The SuSiE file should contain the columns required by `susie_TWAS.R`. The LD
+matrix should use names that match the SuSiE `molecular_trait_id` values after
+the molecular-trait ID normalization described above.
 
 The GWAS manifest must contain columns equivalent to:
 
@@ -160,12 +170,34 @@ The GWAS manifest must contain columns equivalent to:
 summary_stats_path	summary_stats_index_path	chosen_label
 ```
 
-Accepted aliases include `sumstats_path` or `summary_stats_file` for `summary_stats_path`; `sumstats_index_path`, `index_path`, or `tbi` for `summary_stats_index_path`; and `trait` or `trait_label` for `chosen_label`.
+GWAS manifest columns:
+
+| Canonical column | Accepted aliases | Description |
+|------|------|-------------|
+| `summary_stats_path` | `summary_stats`, `sumstats`, `sum_stats`, `sumstats_path`, `summary_stats_file` | Path to a bgzipped, tabix-indexed GWAS summary statistics file |
+| `summary_stats_index_path` | `summary_stats_index`, `sumstats_index`, `sum_stats_index`, `sumstats_index_path`, `index_path`, `tbi`, `summary_stats_tbi` | Path to the tabix index for the summary statistics |
+| `chosen_label` | `chosenlabel`, `trait`, `trait_label`, `label` | Trait label for the GWAS |
+
+When a gene filter is supplied to the WDL workflow, each pair's `qtl_type` is
+passed to `--QTLType` and each pair's `chosen_label` is passed to
+`--ChosenLabel`. The gene filter is therefore applied separately for each QTL x
+GWAS pair.
+
+Blank rows or rows with missing required values are removed before creating the
+cross-product.
 
 ### Outputs
 
-- `twas_manifest_pairs.tsv`: Cross-product of valid QTL and GWAS manifest rows.
+- `twas_manifest_pairs.tsv`: Cross-product of valid QTL and GWAS manifest rows. It includes `pair_id`, row indices, raw paths, labels, safe labels, and per-pair output prefixes.
 - One text file per pair-table column, used by WDL `read_lines()` to scatter over pairs.
+
+Example pair output:
+
+```text
+pair_id	qtl_row	gwas_row	qtl_type	chosen_label	output_prefix
+qtl1_gwas1	1	1	eQTL	monocyte count	TWAS.qtl1_gwas1.eqtl.monocyte_count
+qtl2_gwas1	2	1	pQTL	monocyte count	TWAS.qtl2_gwas1.pqtl.monocyte_count
+```
 
 ## `aggregate_manifest_TWAS.R`
 

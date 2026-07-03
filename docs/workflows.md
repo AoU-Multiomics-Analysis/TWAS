@@ -140,23 +140,45 @@ The workflow has three stages:
 
 ### QTL Manifest
 
-Required columns:
+The QTL manifest is a tab-separated file with a header. Each row describes one
+QTL dataset to run.
 
 | Column | Description |
 |------|-------------|
-| `susie_path` | Path to SuSiE fine-mapping results |
-| `ld_matrix_path` | Path to the matching LD matrix RDS |
-| `qtl_type` | QTL type label, such as `eQTL`, `sQTL`, or `pQTL` |
+| `susie_path` | Path to SuSiE fine-mapping results. Supports `gs://` or task-visible local paths |
+| `ld_matrix_path` | Path to the matching LD matrix RDS. Supports `gs://` or task-visible local paths |
+| `qtl_type` | QTL type label, such as `eQTL`, `sQTL`, or `pQTL`; passed to `--QTLType` when `GeneFilter` is supplied |
+
+Example:
+
+```text
+susie_path	ld_matrix_path	qtl_type
+gs://bucket/qtl/eqtl.susie.tsv.gz	gs://bucket/qtl/eqtl.ld.rds	eQTL
+gs://bucket/qtl/pqtl.susie.tsv.gz	gs://bucket/qtl/pqtl.ld.rds	pQTL
+```
 
 ### GWAS Manifest
 
-Required columns:
+The GWAS manifest is a tab-separated file with a header. Each row describes one
+GWAS trait to run.
 
 | Column | Description |
 |------|-------------|
-| `summary_stats_path` | Path to bgzipped GWAS summary statistics |
-| `summary_stats_index_path` | Path to the tabix index for `summary_stats_path` |
-| `chosen_label` | Trait label passed to the TWAS gene filter |
+| `summary_stats_path` | Path to bgzipped, tabix-indexed GWAS summary statistics. Supports `gs://` or task-visible local paths |
+| `summary_stats_index_path` | Path to the tabix index for `summary_stats_path`; localized next to the summary statistics as `<summary_stats_basename>.tbi` |
+| `chosen_label` | Trait label passed to `--ChosenLabel` when `GeneFilter` is supplied |
+
+Example:
+
+```text
+summary_stats_path	summary_stats_index_path	chosen_label
+gs://bucket/gwas/monocyte.tsv.gz	gs://bucket/gwas/monocyte.tsv.gz.tbi	monocyte count
+gs://bucket/gwas/leukocyte.tsv.gz	gs://bucket/gwas/leukocyte.tsv.gz.tbi	leukocyte quantity
+```
+
+If the QTL manifest has 2 rows and the GWAS manifest has 3 rows, the workflow
+creates 6 pair-level TWAS tasks. Each pair receives the QTL row's `qtl_type` and
+the GWAS row's `chosen_label`.
 
 ### Inputs
 
