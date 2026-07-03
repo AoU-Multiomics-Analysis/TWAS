@@ -135,3 +135,50 @@ Aggregates multiple per-gene or per-trait TWAS result files into one merged TSV.
 ### Output
 
 - `<OutputPrefix>_TWAS.tsv`: Merged TWAS result file.
+
+## `prepare_TWAS_manifest.R`
+
+Expands QTL and GWAS manifests into a QTL x GWAS pair table for the manifest-driven WDL workflow.
+
+### Inputs
+
+- `--QTLManifest`: TSV with QTL inputs.
+- `--GWASManifest`: TSV with GWAS inputs.
+- `--OutputPrefix`: Prefix used to generate unique per-pair output names.
+
+The QTL manifest must contain columns equivalent to:
+
+```text
+susie_path	ld_matrix_path	qtl_type
+```
+
+Accepted aliases include `susie_file`, `fine_mapping_path`, or `susie_res` for `susie_path`; `ld_matrix`, `ld_path`, or `ld_file` for `ld_matrix_path`; and `type` or `label` for `qtl_type`.
+
+The GWAS manifest must contain columns equivalent to:
+
+```text
+summary_stats_path	summary_stats_index_path	chosen_label
+```
+
+Accepted aliases include `sumstats_path` or `summary_stats_file` for `summary_stats_path`; `sumstats_index_path`, `index_path`, or `tbi` for `summary_stats_index_path`; and `trait` or `trait_label` for `chosen_label`.
+
+### Outputs
+
+- `twas_manifest_pairs.tsv`: Cross-product of valid QTL and GWAS manifest rows.
+- One text file per pair-table column, used by WDL `read_lines()` to scatter over pairs.
+
+## `aggregate_manifest_TWAS.R`
+
+Aggregates manifest-driven TWAS outputs. It combines each pair result with its metadata, then writes one global aggregate file and one aggregate file per QTL type.
+
+### Inputs
+
+- `--TWASFiles`: Text file listing localized TWAS result files.
+- `--MetadataFiles`: Text file listing localized per-run metadata files in the same order as `--TWASFiles`.
+- `--OutputPrefix`: Prefix for aggregate output files.
+
+### Outputs
+
+- `<OutputPrefix>.all_TWAS.tsv`: All TWAS results from all QTL x GWAS pairs.
+- `<OutputPrefix>.manifest_run_metadata.tsv`: One metadata row per QTL x GWAS run.
+- `by_qtl_type/<OutputPrefix>.<qtl_type>_TWAS.tsv`: One aggregate file per QTL type.

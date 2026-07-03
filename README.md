@@ -14,6 +14,8 @@ The pipeline is organized around five steps.
 4. Run conditional rare/common TWAS by partitioning the model into common and rare variants.
 5. Aggregate per-trait or per-gene TWAS output files for downstream analysis.
 
+For larger analyses, [workflows/manifest_TWAS.wdl](workflows/manifest_TWAS.wdl) can run the QTL x GWAS cross-product from two manifests. The QTL manifest provides SuSiE result paths, LD matrix paths, and QTL type labels. The GWAS manifest provides summary statistic paths, index paths, and `chosen_label` values. The workflow localizes manifest paths with `gsutil` when they point to Google Cloud Storage, runs each pair, then writes both all-results and per-QTL-type aggregate files.
+
 At a high level, the standard TWAS statistic is a weighted sum of GWAS Z-scores:
 
 ```text
@@ -60,6 +62,28 @@ The main TWAS scripts expect:
 - LD matrices for the variants used in each gene model.
 
 For conditional rare TWAS, fine-mapping results should include either a rare-variant indicator column, usually `rare`, or a `gvs_max_af` column. If the rare indicator is absent, the script defines rare variants as `gvs_max_af < 0.01` after filtering variants with missing or non-numeric `gvs_max_af` values.
+
+## Manifest Inputs
+
+The manifest workflow expects two tab-separated manifests with headers.
+
+QTL manifest:
+
+```text
+susie_path	ld_matrix_path	qtl_type
+gs://bucket/path/eqtl.susie.tsv.gz	gs://bucket/path/eqtl.ld.rds	eQTL
+gs://bucket/path/pqtl.susie.tsv.gz	gs://bucket/path/pqtl.ld.rds	pQTL
+```
+
+GWAS manifest:
+
+```text
+summary_stats_path	summary_stats_index_path	chosen_label
+gs://bucket/path/monocyte.tsv.gz	gs://bucket/path/monocyte.tsv.gz.tbi	monocyte count
+gs://bucket/path/leukocyte.tsv.gz	gs://bucket/path/leukocyte.tsv.gz.tbi	leukocyte quantity
+```
+
+The manifest workflow expands all QTL rows against all GWAS rows. It runs with `AnalysisType = "conditional_rare"` by default and also supports `AnalysisType = "standard"`.
 
 ## Gene And Molecular Trait ID Handling
 

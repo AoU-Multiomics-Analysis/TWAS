@@ -126,6 +126,66 @@ Aggregates multiple TWAS result files into one TSV. The workflow downloads resul
 | `AggregatedTWAS` | File | Merged TWAS result file, `<OutputPrefix>_TWAS.tsv` |
 | `filelist` | File | Localized file list used during aggregation |
 
+## `manifest_TWAS.wdl`
+
+Workflow: `ManifestTWAS`
+
+Runs TWAS over the cross-product of a QTL manifest and a GWAS manifest. This is the preferred workflow for running multiple QTL data types against multiple GWAS traits in one submission.
+
+The workflow has three stages:
+
+1. Expand the QTL and GWAS manifests into one row per QTL x GWAS pair.
+2. Localize each pair's SuSiE file, LD matrix, GWAS summary statistics, and summary-stat index with `gsutil cp` when paths begin with `gs://`.
+3. Aggregate all pair outputs globally and separately by QTL type.
+
+### QTL Manifest
+
+Required columns:
+
+| Column | Description |
+|------|-------------|
+| `susie_path` | Path to SuSiE fine-mapping results |
+| `ld_matrix_path` | Path to the matching LD matrix RDS |
+| `qtl_type` | QTL type label, such as `eQTL`, `sQTL`, or `pQTL` |
+
+### GWAS Manifest
+
+Required columns:
+
+| Column | Description |
+|------|-------------|
+| `summary_stats_path` | Path to bgzipped GWAS summary statistics |
+| `summary_stats_index_path` | Path to the tabix index for `summary_stats_path` |
+| `chosen_label` | Trait label passed to the TWAS gene filter |
+
+### Inputs
+
+| Name | Type | Description |
+|------|------|-------------|
+| `QTLManifest` | File | QTL manifest TSV |
+| `GWASManifest` | File | GWAS manifest TSV |
+| `OutputPrefix` | String | Prefix for pair names and aggregate outputs |
+| `AnalysisType` | String | `conditional_rare` or `standard`; defaults to `conditional_rare` |
+| `RareColumn` | String | Rare indicator column for conditional rare TWAS; defaults to `rare` |
+| `GeneFilter` | File? | Optional gene filter TSV |
+| `NumPrempt` | Int | Number of preemptible retries for pair-level TWAS tasks |
+| `TWASMemory` | Int | Memory in GB for pair-level TWAS tasks |
+| `TWASDiskGB` | Int | Disk in GB for pair-level TWAS tasks |
+| `AggregateMemory` | Int | Memory in GB for aggregation |
+| `AggregateThreads` | Int | CPU threads for aggregation |
+| `AggregateDiskGB` | Int | Disk in GB for aggregation |
+
+### Outputs
+
+| Name | Type | Description |
+|------|------|-------------|
+| `PairManifest` | File | Expanded QTL x GWAS pair table |
+| `PairResults` | Array[File] | One TWAS result per QTL x GWAS pair |
+| `PairMetadata` | Array[File] | One metadata file per QTL x GWAS pair |
+| `AllResults` | File | Aggregate across all QTL types and GWAS traits |
+| `ByQTLTypeResults` | Array[File] | Aggregate files split by QTL type |
+| `RunMetadata` | File | One metadata row per pair-level run |
+
 ## Runtime Image
 
 The workflows use:
