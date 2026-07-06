@@ -1,17 +1,20 @@
 version: 1.2
 workflows:
-  - subclass: WDL 
+  - subclass: WDL
     primaryDescriptorPath: /workflows/compute_LD_TWAS.wdl
     name: "TWAS_LD"
-  - subclass: WDL 
+  - subclass: WDL
     primaryDescriptorPath: /workflows/susie_TWAS.wdl
     name: "SusieTWAS"
-  - subclass: WDL 
+  - subclass: WDL
     primaryDescriptorPath: /workflows/conditional_rare_TWAS.wdl
     name: "ConditionalRareTWAS"
-  - subclass: WDL 
+  - subclass: WDL
+    primaryDescriptorPath: /workflows/manifest_TWAS.wdl
+    name: "ManifestTWAS"
+  - subclass: WDL
     primaryDescriptorPath: /workflows/aggregate_TWAS.wdl
     name: "AggregateTWAS"
-  - subclass: WDL 
+  - subclass: WDL
     primaryDescriptorPath: /workflows/ComputeHeritability.wdl
     name: "ComputeHeritability"
